@@ -97,5 +97,6 @@ python3 -m http.server 8000
 node export/build.js decks/<deck-name>   # → dist/<deck-name>.html
 ```
 
-エクスポートの簡易パーサの制約: スライド内で `<body>` `<style>` `<script>`
-を入れ子・分割記述しない。画像はスライドからの相対パスで置く(base64 化される)。
+エクスポートの制約: 画像はスライドからの相対パスで置く(base64 化される)。
+`</template>` という文字列をスライド内に書かない(スクリプト文字列の中でも
+不可。Declarative Shadow DOM の template が途中で閉じてしまう)。
