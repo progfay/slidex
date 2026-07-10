@@ -1,0 +1,12 @@
+{
+  "title": "slide-platform demo",
+  "stylesheets": ["../../design-system/system.css"],
+  "slides": [
+    "01-title.html",
+    "02-architecture.html",
+    "03-slide-contract.html",
+    "04-shadow-dom.html",
+    "05-interactive.html",
+    "06-export.html"
+  ]
+}

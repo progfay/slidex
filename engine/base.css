@@ -1,0 +1,25 @@
+/*
+ * 全スライドの shadow root に共有適用される基本レイヤー。
+ * スライドは常に 1280x720 の固定キャンバスとして書けばよい。
+ */
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  transform-origin: top left;
+  transform: scale(var(--host-scale, 1));
+  position: relative;
+  overflow: hidden;
+}
+
+.slide * { box-sizing: border-box; }
+
+/* 発表者ノート(将来のスピーカービュー用)。通常表示では隠す */
+aside.notes { display: none; }

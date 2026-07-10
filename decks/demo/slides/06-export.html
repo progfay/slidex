@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>エクスポート</title>
+  <link rel="stylesheet" href="../../../design-system/system.css">
+</head>
+<body>
+  <h1>単一HTMLへのエクスポート</h1>
+  <ul>
+    <li><code>node export/build.js decks/demo</code> で配布用の1ファイルを生成</li>
+    <li>各スライドは <strong>Declarative Shadow DOM</strong> として書き出される</li>
+    <li>CSS・JS・画像(base64)をすべてインライン化</li>
+    <li>開発時と同じ隔離モデルが静的HTMLでも保たれる</li>
+  </ul>
+  <p class="muted">キー操作: ←→ / Space でページ送り、o で一覧、#/3 で直接ジャンプ</p>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>アーキテクチャ</title>
+  <link rel="stylesheet" href="../../../design-system/system.css">
+</head>
+<body class="layout-two-col">
+  <h1>3層アーキテクチャ</h1>
+  <div class="cols">
+    <div>
+      <ul>
+        <li><strong>engine/</strong> — ページ送り・スケーリング・Shadow DOM 注入</li>
+        <li><strong>design-system/</strong> — Claude Design 製のトークンとコンポーネント</li>
+        <li><strong>decks/</strong> — Claude Code が生成するコンテンツ</li>
+      </ul>
+    </div>
+    <div>
+      <pre><code>slide-platform/
+├── engine/
+├── design-system/
+├── decks/
+│   └── my-talk/
+│       ├── manifest.json
+│       └── slides/*.html
+└── export/</code></pre>
+    </div>
+  </div>
+</body>
+</html>

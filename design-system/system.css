@@ -1,0 +1,150 @@
+/*
+ * デザインシステム(shadow スコープ)。
+ * ここは将来 Claude Design で作ったものに差し替える前提のプレースホルダ。
+ * 全スライドの shadow root に adoptedStyleSheets として共有される。
+ */
+
+/* ---- design tokens ---- */
+
+.slide {
+  --color-bg: #f7f8f6;
+  --color-ink: #1c2333;
+  --color-muted: #5a6478;
+  --color-accent: #f5c518;
+  --color-code-bg: #1c2333;
+  --color-code-ink: #e8ecf4;
+
+  --font-display: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  --font-body: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --space-page: 80px;
+
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 24px;
+  line-height: 1.7;
+  padding: var(--space-page);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- 基本要素 ---- */
+
+.slide h1 {
+  font-family: var(--font-display);
+  font-size: 52px;
+  line-height: 1.25;
+  font-weight: 700;
+  margin: 0 0 32px;
+  letter-spacing: -0.01em;
+}
+
+.slide h1::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 6px;
+  background: var(--color-accent);
+  margin-top: 20px;
+}
+
+.slide h2 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.slide p { margin: 0 0 20px; }
+
+.slide ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slide ul > li {
+  padding-left: 32px;
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.slide ul > li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.75em;
+  width: 14px;
+  height: 3px;
+  background: var(--color-accent);
+}
+
+.slide strong { font-weight: 700; }
+.slide .muted { color: var(--color-muted); }
+
+.slide code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: rgb(28 35 51 / 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.slide pre {
+  background: var(--color-code-bg);
+  color: var(--color-code-ink);
+  font-family: var(--font-mono);
+  font-size: 19px;
+  line-height: 1.7;
+  padding: 28px 32px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0;
+}
+
+.slide pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* ---- レイアウトクラス(body の class に指定する) ---- */
+
+/* タイトルスライド */
+.layout-title {
+  justify-content: center;
+}
+
+.layout-title h1 {
+  font-size: 72px;
+}
+
+.layout-title .subtitle {
+  font-size: 28px;
+  color: var(--color-muted);
+}
+
+/* 2カラム */
+.layout-two-col .cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* コード中心 */
+.layout-code pre {
+  flex: 1;
+  min-height: 0;
+}
+
+/* セクション区切り */
+.layout-section {
+  justify-content: center;
+  background: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.layout-section h1 { color: inherit; }

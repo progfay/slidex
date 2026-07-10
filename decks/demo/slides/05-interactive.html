@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>インタラクティブなスライド</title>
+  <link rel="stylesheet" href="../../../design-system/system.css">
+  <style>
+    /* スライド固有のスタイルは <style> に書く(shadow に隔離されるので衝突しない) */
+    .counter {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-top: 24px;
+    }
+    .counter output {
+      font-size: 96px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      min-width: 160px;
+    }
+    .counter button {
+      font: inherit;
+      font-size: 28px;
+      padding: 12px 32px;
+      border: 2px solid var(--color-ink);
+      background: var(--color-accent);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>スクリプトも動く(opt-in)</h1>
+  <p><code>&lt;script data-slide-run&gt;</code> を付けると shadow root 内で実行される。<br>
+     <code>root</code> 変数で自分の shadow root にアクセスできる。</p>
+  <div class="counter">
+    <output id="count">0</output>
+    <button id="inc">+1</button>
+  </div>
+  <script data-slide-run>
+    const out = root.getElementById('count');
+    root.getElementById('inc').addEventListener('click', () => {
+      out.textContent = Number(out.textContent) + 1;
+    });
+  </script>
+</body>
+</html>

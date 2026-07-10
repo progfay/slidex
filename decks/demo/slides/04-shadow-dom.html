@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Shadow DOM による隔離</title>
+  <link rel="stylesheet" href="../../../design-system/system.css">
+</head>
+<body class="layout-section">
+  <h1>各スライドは Shadow DOM に隔離される</h1>
+  <p>スライド間で CSS は混ざらない。<br>
+     デザインシステムは <code>adoptedStyleSheets</code> で全スライドに共有。</p>
+  <aside class="notes">@font-face だけはドキュメント側(fonts.css)に置く点を補足する。</aside>
+</body>
+</html>

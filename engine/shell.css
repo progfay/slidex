@@ -1,0 +1,96 @@
+/* シェル(ビューア)側のスタイル。スライドの中身には一切干渉しない */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #16181d;
+}
+
+#stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* --- 通常表示: 現在のスライドだけ中央に scale して表示 --- */
+
+.slide-host {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+  transform-origin: center;
+  display: none;
+  background: #fff;
+  box-shadow: 0 8px 40px rgb(0 0 0 / 0.45);
+}
+
+.slide-host[data-active] { display: block; }
+
+/* --- overview モード: 全スライドをグリッドで一覧 --- */
+
+body.overview #stage {
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  padding: 24px;
+  align-content: start;
+}
+
+body.overview .slide-host {
+  display: block;
+  position: relative;
+  top: auto; left: auto;
+  transform: none;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  cursor: pointer;
+  overflow: hidden;
+  outline: 2px solid transparent;
+  border-radius: 4px;
+}
+
+body.overview .slide-host[data-active] { outline-color: #f5c518; }
+
+/* overview 内でスライドを縮小表示するための内部スケール */
+body.overview .slide-host > * {
+  pointer-events: none;
+}
+
+/* --- chrome: プログレスバーとページ番号 --- */
+
+#chrome {
+  position: fixed;
+  inset: auto 0 0 0;
+  pointer-events: none;
+  font: 12px/1 ui-monospace, monospace;
+  color: rgb(255 255 255 / 0.55);
+}
+
+#progress-track {
+  height: 3px;
+  background: rgb(255 255 255 / 0.12);
+}
+
+#progress {
+  height: 100%;
+  background: #f5c518;
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 0.25s ease;
+}
+
+#page-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+}
+
+body.overview #chrome { display: none; }
