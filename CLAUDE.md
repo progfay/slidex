@@ -86,26 +86,21 @@ design-system/ は明示的に指示されない限り変更しない。
 </script>
 ```
 
-## プレビューとエクスポート
+## プレビューと公開
 
 ```sh
 # プレビュー(リポジトリルートで)
 python3 -m http.server 8000
 # → http://localhost:8000/engine/shell.html?deck=../decks/<deck-name>
 
-# 単一HTMLへエクスポート
-node export/build.js decks/<deck-name>   # → dist/<deck-name>.html
+# GitHub Pages 用に dist/ へ集約
+./scripts/build.sh   # → dist/(engine + design-system + decks + index.html)
 ```
 
-エクスポートは手元の Chrome/Chromium を headless 起動してスライドを解釈する
-(Document.parseHTMLUnsafe + Sanitizer API。npm 依存はない)。見つからない
-場合は環境変数 `CHROME_PATH` で実行ファイルを指定する。
+公開は GitHub Pages(dist/ をサイトルートとして配信)。build.sh は変換なしの
+コピーで、デッキ一覧の index.html を生成するだけ。各デッキの URL は
+`engine/shell.html?deck=../decks/<deck-name>` になる。
 
-エクスポートの制約:
-
-- 画像はスライドからの相対パスで置く(base64 化される)
-- `<script>`/`<style>` の中に `</template>` という文字列を書かない
-  (Declarative Shadow DOM の template が途中で閉じてしまう)。地の文では
-  `&lt;/template&gt;` と書けば安全
-- XSS-unsafe なもの(`iframe` `embed` `object`、`on*` 属性など)と
-  `data-slide-run` のない `<script>` はエクスポート時に除去される
+- 画像などのアセットはデッキディレクトリ内に相対パスで置く(decks/ ごと
+  コピーされるため、外を参照するとリンク切れになる)
+- design-system/ からは `*.css` だけがコピーされる
