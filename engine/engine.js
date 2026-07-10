@@ -57,6 +57,18 @@ async function loadDeckFromManifest() {
   }
 }
 
+// スライドHTML取り込み時に捨てるもの:
+// - <link>: 単体表示用のデザインシステム参照(共有シートと重複)
+// - <meta> <title>: 文書メタ情報(シェル側は manifest の title を使う)
+// - <base>: シェルの相対URL解決を狂わせる
+// - コメント
+// <script> は残す(パーサ挿入なので自動実行されず、data-slide-run 付きだけを
+// runSlideScripts が明示的に実行する)
+const slideSanitizer = new Sanitizer({
+  removeElements: ['link', 'meta', 'title', 'base'],
+  comments: false,
+});
+
 /**
  * スライド i の HTML を fetch して shadow root に注入する(初回のみ)。
  * 進行中/完了済みの Promise をキャッシュして多重 fetch を防ぐ。
@@ -68,14 +80,12 @@ function ensureSlide(i) {
 
   s.loaded = (async () => {
     const html = await fetchText(`slides/${s.file}`);
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const doc = Document.parseHTMLUnsafe(html, { sanitizer: slideSanitizer });
 
     // スライド固有の <style>(head/body どちらでも)を移植
     for (const style of doc.querySelectorAll('style')) {
       s.shadow.appendChild(style.cloneNode(true));
     }
-
-    // <link rel="stylesheet"> は単体表示用なので捨てる(共有シートと重複)
 
     // <body> の中身を移植
     const body = doc.body;
