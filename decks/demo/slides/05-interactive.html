@@ -29,15 +29,15 @@
     }
   </style>
 </head>
-<body>
+<body class="slide">
   <h1>スクリプトも動く(opt-in)</h1>
-  <p><code>&lt;script data-slide-run&gt;</code> を付けると shadow root 内で実行される。<br>
+  <p><code>&lt;script type="text/slide" data-slide-run&gt;</code> を付けると shadow root 内で実行される。<br>
      <code>root</code> 変数で自分の shadow root にアクセスできる。</p>
   <div class="counter">
     <output id="count">0</output>
     <button id="inc">+1</button>
   </div>
-  <script data-slide-run>
+  <script type="text/slide" data-slide-run>
     const out = root.getElementById('count');
     root.getElementById('inc').addEventListener('click', () => {
       out.textContent = Number(out.textContent) + 1;

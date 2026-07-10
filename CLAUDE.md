@@ -31,7 +31,7 @@ design-system/ は明示的に指示されない限り変更しない。
   <link rel="stylesheet" href="../../../design-system/system.css">
   <style>/* このスライド固有のスタイル(任意) */</style>
 </head>
-<body class="layout-two-col">
+<body class="slide layout-two-col">
   <h1>見出し</h1>
   ...
   <aside class="notes">発表者ノート(任意)</aside>
@@ -42,7 +42,9 @@ design-system/ は明示的に指示されない限り変更しない。
 ルール:
 
 - **キャンバスは 1280x720 固定**。レスポンシブ対応は不要(エンジンが scale する)
-- レイアウトは `<body>` の class で指定する(下記レイアウト一覧)
+- **`<body>` の class には必ず `slide` を含める**(デザインシステムは `.slide`
+  スコープなので、これがないと単体表示でスタイルが当たらない)
+- レイアウトは `<body>` の class に追加で指定する(下記レイアウト一覧)
 - スライド固有のスタイルは `<head>` 内の `<style>` に書く。Shadow DOM に
   隔離されるため他スライドとの衝突は考えなくてよい
 - `<link rel="stylesheet">` はデザインシステムだけを指す(単体表示用。
@@ -54,13 +56,15 @@ design-system/ は明示的に指示されない限り変更しない。
 
 ## 利用できるレイアウト(body の class)
 
+`slide` class に追加して指定する(例: `class="slide layout-title"`)。
+
 | class | 用途 |
 |---|---|
 | `layout-title` | タイトルスライド(中央寄せ、大見出し + `.subtitle`) |
 | `layout-section` | セクション区切り(反転配色) |
 | `layout-two-col` | 2カラム。`<div class="cols">` の直下に2つの `<div>` |
 | `layout-code` | コード中心。`<pre><code>` が残り高さいっぱいに広がる |
-| (なし) | 標準。見出し + 本文/箇条書き |
+| (`slide` のみ) | 標準。見出し + 本文/箇条書き |
 
 ## デザイントークン(抜粋)
 
@@ -69,13 +73,15 @@ design-system/ は明示的に指示されない限り変更しない。
 
 ## インタラクティブな要素
 
-スクリプトは opt-in。`<script data-slide-run>` に書くと、エンジンが shadow root
-内で実行する。自分の shadow root は `root` 変数で参照する(`document` を
-直接触らない)。
+スクリプトは opt-in。`<script type="text/slide" data-slide-run>` に書くと、
+エンジンが `type` を剥がして shadow root 内で実行する。自分の shadow root は
+`root` 変数で参照する(`document` を直接触らない)。
+`type="text/slide"` は必須(単体表示でブラウザが生実行して `root` 未定義で
+エラーになるのを防ぐ。単体表示ではスクリプトは動かない)。
 
 ```html
-<button id="go" data-slide-run>実行</button>
-<script data-slide-run>
+<button id="go">実行</button>
+<script type="text/slide" data-slide-run>
   root.getElementById('go').addEventListener('click', () => { ... });
 </script>
 ```
