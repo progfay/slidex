@@ -1,6 +1,6 @@
 {
   "title": "slidex demo",
-  "stylesheets": ["../../design-system/system.css"],
+  "stylesheets": ["design-system/system.css"],
   "slides": [
     "01-title.html",
     "02-architecture.html",

@@ -16,9 +16,6 @@ const state = {
   overview: false,
 };
 
-// 遅延ロードに必要なデッキ情報
-let deck = null;   // { path: string }
-
 const $ = (sel) => document.querySelector(sel);
 
 /* ---------------------------------------------------------------- *
@@ -44,16 +41,12 @@ export async function boot() {
  * ---------------------------------------------------------------- */
 
 async function loadDeckFromManifest() {
-  const params = new URLSearchParams(location.search);
-  const deckPath = params.get('deck') ?? '../decks/demo';
-
-  const manifest = await fetchJSON(`${deckPath}/manifest.json`);
+  const manifest = await fetchJSON('manifest.json');
   document.title = manifest.title ?? 'Slides';
 
   // デザインシステムを Constructable Stylesheet として1度だけ構築し、
   // 全スライドの shadow root で共有する
-  const sheets = await buildSharedSheets(manifest, deckPath);
-  deck = { path: deckPath };
+  const sheets = await buildSharedSheets(manifest);
 
   const stage = $('#stage');
   for (const file of manifest.slides) {
@@ -79,7 +72,7 @@ function ensureSlide(i) {
   if (!s || s.loaded) return s?.loaded ?? Promise.resolve();
 
   s.loaded = (async () => {
-    const html = await fetchText(`${deck.path}/slides/${s.file}`);
+    const html = await fetchText(`slides/${s.file}`);
     const doc = new DOMParser().parseFromString(html, 'text/html');
 
     // スライド固有の <style>(head/body どちらでも)を移植
@@ -114,11 +107,12 @@ function prefetchAround(n) {
   ensureSlide(n - 1).catch(() => {});
 }
 
-async function buildSharedSheets(manifest, deckPath) {
+async function buildSharedSheets(manifest) {
   const urls = [
     new URL('./base.css', import.meta.url).href,
-    ...(manifest.stylesheets ?? ['../../design-system/system.css']).map(
-      (p) => new URL(p, new URL(`${deckPath}/`, location.href)).href,
+    // manifest の stylesheets はサイトルート(= manifest.json の場所)基準
+    ...(manifest.stylesheets ?? ['design-system/system.css']).map(
+      (p) => new URL(p, location.href).href,
     ),
   ];
 
@@ -174,13 +168,7 @@ function pageFromURL(url) {
 
 function urlFor(n) {
   const url = new URL(location.href);
-  // URLSearchParams で組み直すと deck=../decks/demo が %2F だらけになるので
-  // page パラメータだけを文字列操作で足し替える
-  if (/[?&]page=\d+/.test(url.search)) {
-    url.search = url.search.replace(/([?&]page=)\d+/, `$1${n + 1}`);
-  } else {
-    url.search += `${url.search ? '&' : '?'}page=${n + 1}`;
-  }
+  url.searchParams.set('page', n + 1);
   url.hash = '';
   return url;
 }

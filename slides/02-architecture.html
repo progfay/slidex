@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>アーキテクチャ</title>
-  <link rel="stylesheet" href="../../../design-system/system.css">
+  <link rel="stylesheet" href="../design-system/system.css">
 </head>
 <body class="slide layout-two-col">
   <h1>3層アーキテクチャ</h1>
@@ -12,18 +12,16 @@
       <ul>
         <li><strong>engine/</strong> — ページ送り・スケーリング・Shadow DOM 注入</li>
         <li><strong>design-system/</strong> — Claude Design 製のトークンとコンポーネント</li>
-        <li><strong>decks/</strong> — Claude Code が生成するコンテンツ</li>
+        <li><strong>slides/</strong> — Claude Code が生成するコンテンツ(1リポジトリ = 1デッキ)</li>
       </ul>
     </div>
     <div>
       <pre><code>slidex/
+├── index.html      ← ビューア入口
+├── manifest.json
+├── slides/*.html
 ├── engine/
-├── design-system/
-├── decks/
-│   └── my-talk/
-│       ├── manifest.json
-│       └── slides/*.html
-└── export/</code></pre>
+└── design-system/</code></pre>
     </div>
   </div>
 </body>

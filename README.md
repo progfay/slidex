@@ -1,20 +1,21 @@
 # slidex
 
 Claude Code でスライドを高速に作るためのプラットフォーム。
-「エンジン」「デザインシステム」「コンテンツ」を分離した3層構成。
+「エンジン」「デザインシステム」「コンテンツ」を分離した3層構成で、
+**1リポジトリ = 1デッキ**。
 
 ```
 slidex/
+├── index.html        # ビューアの入口(開くと上映が始まる)
+├── manifest.json     # デッキ定義(タイトル・スライドの並び)
+├── slides/           # 1スライド = 1HTML(NN-slug.html)
 ├── engine/           # ビューア: ページ送り・スケーリング・Shadow DOM 注入
-│   ├── shell.html    #   開発時のエントリポイント
 │   ├── engine.js     #   本体(依存ゼロ・ESM)
 │   ├── shell.css     #   シェルUI(ステージ・プログレスバー)
 │   └── base.css      #   全スライド共通の基本レイヤー(1280x720 キャンバス)
 ├── design-system/
 │   ├── fonts.css     # @font-face(ドキュメント側。shadow 内では効かないため分離)
 │   └── system.css    # トークン + レイアウト(Claude Design 製に差し替える想定)
-├── decks/
-│   └── demo/         # 1スライド = 1HTML + manifest.json
 ├── scripts/build.sh  # GitHub Pages 用に dist/ へサイト一式を集約
 └── CLAUDE.md         # Claude Code 向けの生成規約
 ```
@@ -27,7 +28,7 @@ slidex/
 python3 -m http.server 8000
 ```
 
-http://localhost:8000/engine/shell.html?deck=../decks/demo を開く。
+http://localhost:8000/ を開く(ソースと配信物が同じ構造なのでビルド不要)。
 
 | 操作 | 動作 |
 |---|---|
@@ -40,10 +41,11 @@ http://localhost:8000/engine/shell.html?deck=../decks/demo を開く。
 ページ位置は Navigation API 対応ブラウザでは実URL(`?page=N`)に同期され、
 非対応環境では自動的にハッシュ(`#/N`)にフォールバックする。
 
-### 新しいデッキを作る
+### スライドを作る
 
-`decks/demo/` をコピーして manifest とスライドを書き換える。
+`slides/` にスライドを足し、`manifest.json` の `slides` 配列に列挙する。
 詳細な規約は [CLAUDE.md](./CLAUDE.md) を参照(Claude Code はこれを読んで生成する)。
+別のデッキを作るときはリポジトリごと複製する(1リポジトリ = 1デッキ)。
 
 ### GitHub Pages に公開
 
@@ -51,10 +53,10 @@ http://localhost:8000/engine/shell.html?deck=../decks/demo を開く。
 ./scripts/build.sh   # → dist/
 ```
 
-`engine/` `design-system/`(CSS のみ)`decks/` を `dist/` にそのままコピーし、
-デッキ一覧の `index.html` と `.nojekyll` を生成する。変換は行わない。
-`dist/` を GitHub Pages のサイトルートとして配信すれば、各デッキは
-`engine/shell.html?deck=../decks/<deck-name>` で閲覧できる。
+`index.html` `manifest.json` `slides/` `engine/` `design-system/`(CSS のみ)を
+`dist/` にそのままコピーし、`.nojekyll` を足す。変換は行わない。
+`dist/` を GitHub Pages のサイトルートとして配信すれば、**URL 直下でそのまま
+上映**が始まり、各スライドは `slides/NN-slug.html` で単体閲覧もできる。
 
 ## アーキテクチャ上の要点
 

@@ -1,19 +1,20 @@
 # slidex — スライド生成規約
 
-このリポジトリは HTML スライドのプラットフォームである。Claude Code はここで
-**decks/ 以下のコンテンツを生成・編集する**のが主な仕事であり、engine/ と
-design-system/ は明示的に指示されない限り変更しない。
+このリポジトリは HTML スライドのプラットフォームである。**1リポジトリ = 1デッキ**。
+Claude Code はここで **slides/ 以下のコンテンツを生成・編集する**のが主な仕事であり、
+engine/ と design-system/ は明示的に指示されない限り変更しない。
 
-## 新しいデッキの作り方
+## デッキの構成
 
-1. `decks/<deck-name>/manifest.json` と `decks/<deck-name>/slides/` を作る
-2. スライドは `NN-slug.html` の連番命名で 1スライド = 1ファイル
-3. manifest の `slides` 配列に順番どおり列挙する
+デッキはリポジトリルートの `manifest.json` と `slides/` で構成する。
+
+1. スライドは `slides/NN-slug.html` の連番命名で 1スライド = 1ファイル
+2. manifest の `slides` 配列に順番どおり列挙する(パスは `slides/` からのファイル名)
 
 ```json
 {
   "title": "デッキのタイトル",
-  "stylesheets": ["../../design-system/system.css"],
+  "stylesheets": ["design-system/system.css"],
   "slides": ["01-title.html", "02-agenda.html"]
 }
 ```
@@ -28,7 +29,7 @@ design-system/ は明示的に指示されない限り変更しない。
 <head>
   <meta charset="utf-8">
   <title>スライドのタイトル</title>
-  <link rel="stylesheet" href="../../../design-system/system.css">
+  <link rel="stylesheet" href="../design-system/system.css">
   <style>/* このスライド固有のスタイル(任意) */</style>
 </head>
 <body class="slide layout-two-col">
@@ -99,16 +100,16 @@ design-system/ は明示的に指示されない限り変更しない。
 ```sh
 # プレビュー(リポジトリルートで)
 python3 -m http.server 8000
-# → http://localhost:8000/engine/shell.html?deck=../decks/<deck-name>
+# → http://localhost:8000/(ルートの index.html がビューア)
 
 # GitHub Pages 用に dist/ へ集約
-./scripts/build.sh   # → dist/(engine + design-system + decks + index.html)
+./scripts/build.sh   # → dist/(index.html + manifest + slides + engine + design-system)
 ```
 
 公開は GitHub Pages(dist/ をサイトルートとして配信)。build.sh は変換なしの
-コピーで、デッキ一覧の index.html を生成するだけ。各デッキの URL は
-`engine/shell.html?deck=../decks/<deck-name>` になる。
+コピーで、ソースと同じ構造を dist/ に集約する。**Pages の URL 直下を開くと
+そのまま上映**が始まり、各スライドは `slides/NN-slug.html` で単体閲覧もできる。
 
-- 画像などのアセットはデッキディレクトリ内に相対パスで置く(decks/ ごと
-  コピーされるため、外を参照するとリンク切れになる)
+- 画像などのアセットは `slides/` 内に相対パスで置く(slides/ ごとコピー
+  されるため、コピー対象外を参照するとリンク切れになる)
 - design-system/ からは `*.css` だけがコピーされる

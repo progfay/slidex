@@ -3,7 +3,7 @@
  *
  * 重要: @font-face は Shadow DOM 内では効かない(仕様)。
  * Webフォントを使う場合は必ずこのファイルに @font-face を書き、
- * shell.html / エクスポートHTML のドキュメント側で読み込むこと。
+ * index.html のドキュメント側で読み込むこと。
  * shadow 側(system.css)では font-family 名を参照するだけにする。
  *
  * プロトタイプではシステムフォントを使うため空。
