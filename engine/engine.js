@@ -10,7 +10,7 @@ const SLIDE_W = 1280;
 const SLIDE_H = 720;
 
 const state = {
-  slides: [],      // { host: HTMLElement, shadow: ShadowRoot, title: string,
+  slides: [],      // { host: HTMLElement, shadow: ShadowRoot,
                    //   file: string, loaded: Promise<void>|null }
   current: -1,
   overview: false,
@@ -22,7 +22,7 @@ const $ = (sel) => document.querySelector(sel);
  * 起動
  * ---------------------------------------------------------------- */
 
-export async function boot() {
+async function boot() {
   await loadDeckFromManifest();
 
   setupChrome();
@@ -58,7 +58,7 @@ async function loadDeckFromManifest() {
     shadow.adoptedStyleSheets = sheets;
 
     stage.appendChild(host);
-    state.slides.push({ host, shadow, title: file, file, loaded: null });
+    state.slides.push({ host, shadow, file, loaded: null });
   }
 }
 
@@ -90,8 +90,6 @@ function ensureSlide(i) {
     wrapper.classList.add(...body.classList);
     wrapper.append(...body.childNodes);
     s.shadow.appendChild(wrapper);
-
-    s.title = doc.title || s.file;
 
     // opt-in スクリプトの実行 (<script data-slide-run>)
     runSlideScripts(s.shadow);
@@ -173,7 +171,7 @@ function urlFor(n) {
   return url;
 }
 
-export function goTo(index, { replace = false } = {}) {
+function goTo(index, { replace = false } = {}) {
   const n = clamp(index, 0, state.slides.length - 1);
   if (useNavigationAPI) {
     const url = urlFor(n);
@@ -292,14 +290,6 @@ function setupNavigation() {
         e.preventDefault();
         prev();
         break;
-      case 'Home':
-        e.preventDefault();
-        goTo(0);
-        break;
-      case 'End':
-        e.preventDefault();
-        goTo(state.slides.length - 1);
-        break;
       case 'o':
         toggleOverview();
         break;
@@ -382,20 +372,13 @@ function setupScaling() {
  * ---------------------------------------------------------------- */
 
 function setupChrome() {
-  if (!$('#stage')) {
-    const stage = document.createElement('div');
-    stage.id = 'stage';
-    document.body.prepend(stage);
-  }
-  if (!$('#chrome')) {
-    const chrome = document.createElement('div');
-    chrome.id = 'chrome';
-    chrome.innerHTML = `
-      <div id="progress-track"><div id="progress"></div></div>
-      <div id="page-counter"></div>
-    `;
-    document.body.appendChild(chrome);
-  }
+  const chrome = document.createElement('div');
+  chrome.id = 'chrome';
+  chrome.innerHTML = `
+    <div id="progress-track"><div id="progress"></div></div>
+    <div id="page-counter"></div>
+  `;
+  document.body.appendChild(chrome);
 }
 
 /* ---------------------------------------------------------------- *
