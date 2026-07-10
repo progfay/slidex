@@ -36,7 +36,7 @@ async function boot() {
  * ---------------------------------------------------------------- */
 
 async function loadDeckFromManifest() {
-  const manifest = await fetchJSON('manifest.json');
+  const manifest = JSON.parse(await fetchText('manifest.json'));
   document.title = manifest.title ?? 'Slides';
 
   // デザインシステムを Constructable Stylesheet として1度だけ構築し、
@@ -76,31 +76,30 @@ const slideSanitizer = new Sanitizer({
  */
 function ensureSlide(i) {
   const s = state.slides[i];
-  if (!s || s.loaded) return s?.loaded ?? Promise.resolve();
+  if (!s) return Promise.resolve();
 
-  s.loaded = (async () => {
-    const html = await fetchText(`slides/${s.file}`);
-    const doc = Document.parseHTMLUnsafe(html, { sanitizer: slideSanitizer });
+  if (!s.loaded) {
+    s.loaded = (async () => {
+      const html = await fetchText(`slides/${s.file}`);
+      const doc = Document.parseHTMLUnsafe(html, { sanitizer: slideSanitizer });
 
-    // スライド固有の <style>(head/body どちらでも)を移植
-    for (const style of doc.querySelectorAll('style')) {
-      s.shadow.appendChild(style.cloneNode(true));
-    }
+      // スライド固有の <style>(head/body どちらでも)を移植
+      s.shadow.append(...doc.querySelectorAll('style'));
 
-    // <body> の中身を移植
-    const body = doc.body;
-    const wrapper = document.createElement('div');
-    wrapper.className = 'slide';
-    // body の class(レイアウト指定)を wrapper に引き継ぐ
-    wrapper.classList.add(...body.classList);
-    wrapper.append(...body.childNodes);
-    s.shadow.appendChild(wrapper);
+      // <body> の中身を移植
+      const body = doc.body;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'slide';
+      // body の class(レイアウト指定)を wrapper に引き継ぐ
+      wrapper.classList.add(...body.classList);
+      wrapper.append(...body.childNodes);
+      s.shadow.appendChild(wrapper);
 
-    // opt-in スクリプトの実行 (<script data-slide-run>)
-    runSlideScripts(s.shadow);
-  })();
-
-  s.loaded.catch(() => (s.loaded = null));
+      // opt-in スクリプトの実行 (<script data-slide-run>)
+      runSlideScripts(s.shadow);
+    })();
+    s.loaded.catch(() => (s.loaded = null));
+  }
   return s.loaded;
 }
 
@@ -119,33 +118,20 @@ async function buildSharedSheets(manifest) {
     ),
   ];
 
-  const sheets = [];
-  for (const url of urls) {
-    const css = await fetchText(url);
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(css);
-    sheets.push(sheet);
-  }
-  return sheets;
+  return Promise.all(
+    urls.map(async (url) => {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(await fetchText(url));
+      return sheet;
+    }),
+  );
 }
 
-let scriptSeq = 0;
-
+// opt-in スクリプト(<script type="text/slide" data-slide-run>)を実行する。
+// スライド内スクリプトには自分の shadow root を `root` として渡す規約
 function runSlideScripts(shadow) {
-  for (const old of shadow.querySelectorAll('script[data-slide-run]')) {
-    const script = document.createElement('script');
-    // type="text/slide" は単体表示でブラウザが生実行するのを防ぐための印なので剥がす
-    for (const { name, value } of old.attributes) {
-      if (name !== 'type') script.setAttribute(name, value);
-    }
-    // スライド内スクリプトには自分の shadow root を `root` として渡す規約。
-    // (document.currentScript は shadow tree 内では null になるため、レジストリ経由で渡す)
-    const key = `s${scriptSeq++}`;
-    (window.__slideRoot ??= {})[key] = shadow;
-    script.textContent =
-      `{ const root = window.__slideRoot['${key}']; delete window.__slideRoot['${key}'];\n` +
-      `${old.textContent}\n}`;
-    old.replaceWith(script);
+  for (const script of shadow.querySelectorAll('script[data-slide-run]')) {
+    new Function('root', script.textContent)(shadow);
   }
 }
 
@@ -309,12 +295,6 @@ async function fetchText(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
   return res.text();
-}
-
-async function fetchJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
-  return res.json();
 }
 
 boot();
