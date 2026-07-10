@@ -166,11 +166,6 @@
 }
 
 .slide.layout-section {
-  --color-bg: #E8EDF6;
-  --color-ink: #10141F;
-  --color-muted: #55607A;
-  background: var(--color-bg);
-  color: var(--color-ink);
   justify-content: center;
 }
 

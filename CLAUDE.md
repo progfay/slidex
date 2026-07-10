@@ -61,7 +61,7 @@ design-system/ は明示的に指示されない限り変更しない。
 | class | 用途 |
 |---|---|
 | `layout-title` | タイトルスライド(中央寄せ、大見出し + `.subtitle`) |
-| `layout-section` | セクション区切り(反転配色) |
+| `layout-section` | セクション区切り(中央寄せの見出し) |
 | `layout-two-col` | 2カラム。`<div class="cols">` の直下に2つの `<div>` |
 | `layout-code` | コード中心。`<pre><code>` が残り高さいっぱいに広がる |
 | `layout-quote` | 引用。中央寄せの大きな `<blockquote>` + `.attribution` |
