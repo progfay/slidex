@@ -14,10 +14,14 @@ const SLIDE_W = 1280;
 const SLIDE_H = 720;
 
 const state = {
-  slides: [],      // { host: HTMLElement, shadow: ShadowRoot, title: string }
+  slides: [],      // { host: HTMLElement, shadow: ShadowRoot, title: string,
+                   //   file: string|null, loaded: Promise<void>|null }
   current: -1,
   overview: false,
 };
+
+// dev モードのみ: 遅延ロードに必要なデッキ情報
+let deck = null;   // { path: string }
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -44,6 +48,9 @@ export async function boot() {
 
 /* ---------------------------------------------------------------- *
  * dev モード: manifest を読んでスライドを Shadow DOM に注入
+ *
+ * 起動時は全スライド分の空の host(プレースホルダ)だけを作り、
+ * HTML の fetch と注入は ensureSlide() で表示直前まで遅延する。
  * ---------------------------------------------------------------- */
 
 async function loadDeckFromManifest() {
@@ -56,15 +63,10 @@ async function loadDeckFromManifest() {
   // デザインシステムを Constructable Stylesheet として1度だけ構築し、
   // 全スライドの shadow root で共有する
   const sheets = await buildSharedSheets(manifest, deckPath);
+  deck = { path: deckPath };
 
   const stage = $('#stage');
-  const parser = new DOMParser();
-
   for (const file of manifest.slides) {
-    const url = `${deckPath}/slides/${file}`;
-    const html = await fetchText(url);
-    const doc = parser.parseFromString(html, 'text/html');
-
     const host = document.createElement('div');
     host.className = 'slide-host';
     const shadow = host.attachShadow({ mode: 'open' });
@@ -72,9 +74,27 @@ async function loadDeckFromManifest() {
     // 共有シート(base + design system)を適用
     shadow.adoptedStyleSheets = sheets;
 
+    stage.appendChild(host);
+    state.slides.push({ host, shadow, title: file, file, loaded: null });
+  }
+}
+
+/**
+ * スライド i の HTML を fetch して shadow root に注入する(初回のみ)。
+ * 進行中/完了済みの Promise をキャッシュして多重 fetch を防ぐ。
+ * 失敗時はキャッシュを破棄し、次の表示で再試行できるようにする。
+ */
+function ensureSlide(i) {
+  const s = state.slides[i];
+  if (!s || s.loaded) return s?.loaded ?? Promise.resolve();
+
+  s.loaded = (async () => {
+    const html = await fetchText(`${deck.path}/slides/${s.file}`);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
     // スライド固有の <style>(head/body どちらでも)を移植
     for (const style of doc.querySelectorAll('style')) {
-      shadow.appendChild(style.cloneNode(true));
+      s.shadow.appendChild(style.cloneNode(true));
     }
 
     // <link rel="stylesheet"> は単体表示用なので捨てる(共有シートと重複)
@@ -86,18 +106,22 @@ async function loadDeckFromManifest() {
     // body の class(レイアウト指定)を wrapper に引き継ぐ
     wrapper.classList.add(...body.classList);
     wrapper.append(...body.childNodes);
-    shadow.appendChild(wrapper);
+    s.shadow.appendChild(wrapper);
 
-    stage.appendChild(host);
-    state.slides.push({
-      host,
-      shadow,
-      title: doc.title || file,
-    });
+    s.title = doc.title || s.file;
 
     // opt-in スクリプトの実行 (<script data-slide-run>)
-    runSlideScripts(shadow);
-  }
+    runSlideScripts(s.shadow);
+  })();
+
+  s.loaded.catch(() => (s.loaded = null));
+  return s.loaded;
+}
+
+// 前後のスライドを先読みしておく(次の1操作を待たせない)
+function prefetchAround(n) {
+  ensureSlide(n + 1).catch(() => {});
+  ensureSlide(n - 1).catch(() => {});
 }
 
 async function buildSharedSheets(manifest, deckPath) {
@@ -148,6 +172,8 @@ function collectExportedSlides() {
       host,
       shadow: host.shadowRoot,
       title: host.dataset.title ?? '',
+      file: null,
+      loaded: Promise.resolve(), // DSD で既に注入済み
     });
     runSlideScripts(host.shadowRoot);
   }
@@ -191,7 +217,7 @@ export function goTo(index, { replace = false } = {}) {
   if (useNavigationAPI) {
     const url = urlFor(n);
     if (url.href === location.href) {
-      applyPage(n);
+      transitionTo(n);
       return;
     }
     try {
@@ -206,11 +232,6 @@ export function goTo(index, { replace = false } = {}) {
   syncHash(n, replace);
 }
 
-function applyPage(n) {
-  state.current = n;
-  render();
-}
-
 // :active-view-transition-type() が使えるブラウザなら types 付き(オブジェクト
 // 引数)で呼べる。古い実装にオブジェクトを渡すと update が呼ばれず DOM 更新が
 // 消えるため、セレクタ対応で判定する
@@ -219,32 +240,38 @@ const viewTransitionTypesSupported =
   CSS.supports('selector(:active-view-transition-type(forward))');
 
 /**
- * ページ切り替えを View Transition で包む(演出は shell.css の
- * ::view-transition-* に定義)。未対応ブラウザ・reduced-motion・初回表示は
- * そのまま切り替える。進行中の遷移は新しい startViewTransition が自動で
- * スキップするので連打の考慮は不要。
+ * スライドの遅延ロードを待ってからページ切り替えを View Transition で包む
+ * (演出は shell.css の ::view-transition-* に定義)。未対応ブラウザ・
+ * reduced-motion・初回表示はそのまま切り替える。進行中の遷移は新しい
+ * startViewTransition が自動でスキップするので連打の考慮は不要。
  */
-function transitionTo(n) {
+async function transitionTo(n) {
   const from = state.current;
+  // state は同期的に確定させる(ロード完了まで遅らせると、連打時に
+  // 次の入力が古い state.current を見て取りこぼす)
+  state.current = n;
+  try {
+    await ensureSlide(n);
+  } catch (err) {
+    console.error(err); // ロード失敗時も空の host のまま切り替える
+  }
+  // ロード待ちの間に別ページへ移っていたら描画しない(後発の呼び出しに任せる)
+  if (state.current !== n) return;
+
+  const update = () => render();
   if (
     !document.startViewTransition ||
     from === -1 ||
     from === n ||
     matchMedia('(prefers-reduced-motion: reduce)').matches
   ) {
-    applyPage(n);
-    return;
-  }
-  // state は同期的に確定させる(update コールバックまで遅らせると、連打時に
-  // 次の入力が古い state.current を見て取りこぼす)。View Transition が
-  // 包むのは描画だけ
-  state.current = n;
-  const update = () => render();
-  if (viewTransitionTypesSupported) {
+    render();
+  } else if (viewTransitionTypesSupported) {
     document.startViewTransition({ update, types: [n > from ? 'forward' : 'backward'] });
   } else {
     document.startViewTransition(update);
   }
+  prefetchAround(n);
 }
 
 const next = () => goTo(state.current + 1);
@@ -359,6 +386,10 @@ function setupNavigation() {
 
 function toggleOverview() {
   state.overview = !state.overview;
+  if (state.overview) {
+    // 一覧では全スライドが見えるので、未ロード分を非同期に埋めていく
+    for (let i = 0; i < state.slides.length; i++) ensureSlide(i).catch(() => {});
+  }
   render();
 }
 
