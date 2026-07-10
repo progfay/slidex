@@ -89,3 +89,48 @@ body.overview .slide-host[data-active] { outline-color: #f5c518; }
 }
 
 body.overview #chrome { display: none; }
+
+/* --- View Transitions: ページ送りの遷移演出 --- *
+ * エンジンが document.startViewTransition() でページ切り替えを包む。
+ * ::view-transition-* 疑似要素はドキュメントスコープにしか存在しないため、
+ * 演出の定義はデザインシステム(shadow スコープ)ではなくここに置く。
+ * 未対応ブラウザではこのブロックは丸ごと無視され、即時切り替えになる。
+ */
+
+/* 表示中のスライドだけに名前を付け、old/new のスナップショット対を作る。
+   overview からの選択時は同名同士がモーフする(グリッドのセル → 全画面) */
+.slide-host[data-active] { view-transition-name: current-slide; }
+
+::view-transition-old(current-slide),
+::view-transition-new(current-slide) {
+  animation-duration: 0.22s;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* 方向付き(エンジンが types: [forward|backward] を渡す)。
+   :active-view-transition-type() 未対応ならクロスフェードのまま */
+html:active-view-transition-type(forward)::view-transition-old(current-slide) {
+  animation-name: vt-out-to-left;
+}
+html:active-view-transition-type(forward)::view-transition-new(current-slide) {
+  animation-name: vt-in-from-right;
+}
+html:active-view-transition-type(backward)::view-transition-old(current-slide) {
+  animation-name: vt-out-to-right;
+}
+html:active-view-transition-type(backward)::view-transition-new(current-slide) {
+  animation-name: vt-in-from-left;
+}
+
+@keyframes vt-out-to-left {
+  to { opacity: 0; transform: translateX(-48px); }
+}
+@keyframes vt-in-from-right {
+  from { opacity: 0; transform: translateX(48px); }
+}
+@keyframes vt-out-to-right {
+  to { opacity: 0; transform: translateX(48px); }
+}
+@keyframes vt-in-from-left {
+  from { opacity: 0; transform: translateX(-48px); }
+}

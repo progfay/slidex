@@ -195,20 +195,56 @@ export function goTo(index, { replace = false } = {}) {
       return;
     }
     try {
-      // 描画は navigate リスナーの intercept handler(applyPage)が行う
+      // 描画は navigate リスナーの intercept handler(transitionTo)が行う
       navigation.navigate(url.href, { history: replace ? 'replace' : 'push' });
       return;
     } catch {
       // 遷移が拒否される環境(サンドボックス等)ではハッシュにフォールバック
     }
   }
-  applyPage(n);
+  transitionTo(n);
   syncHash(n, replace);
 }
 
 function applyPage(n) {
   state.current = n;
   render();
+}
+
+// :active-view-transition-type() が使えるブラウザなら types 付き(オブジェクト
+// 引数)で呼べる。古い実装にオブジェクトを渡すと update が呼ばれず DOM 更新が
+// 消えるため、セレクタ対応で判定する
+const viewTransitionTypesSupported =
+  typeof CSS !== 'undefined' &&
+  CSS.supports('selector(:active-view-transition-type(forward))');
+
+/**
+ * ページ切り替えを View Transition で包む(演出は shell.css の
+ * ::view-transition-* に定義)。未対応ブラウザ・reduced-motion・初回表示は
+ * そのまま切り替える。進行中の遷移は新しい startViewTransition が自動で
+ * スキップするので連打の考慮は不要。
+ */
+function transitionTo(n) {
+  const from = state.current;
+  if (
+    !document.startViewTransition ||
+    from === -1 ||
+    from === n ||
+    matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    applyPage(n);
+    return;
+  }
+  // state は同期的に確定させる(update コールバックまで遅らせると、連打時に
+  // 次の入力が古い state.current を見て取りこぼす)。View Transition が
+  // 包むのは描画だけ
+  state.current = n;
+  const update = () => render();
+  if (viewTransitionTypesSupported) {
+    document.startViewTransition({ update, types: [n > from ? 'forward' : 'backward'] });
+  } else {
+    document.startViewTransition(update);
+  }
 }
 
 const next = () => goTo(state.current + 1);
@@ -243,7 +279,7 @@ function setupNavigation() {
       const n = pageFromURL(url);
       if (n === null) return;
       // スライド切り替えでフォーカス/スクロールを動かさない
-      e.intercept({ focusReset: 'manual', scroll: 'manual', handler: () => applyPage(n) });
+      e.intercept({ focusReset: 'manual', scroll: 'manual', handler: () => transitionTo(n) });
     });
   } else {
     window.addEventListener('hashchange', () => {
