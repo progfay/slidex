@@ -92,6 +92,103 @@ body.overview .slide-host[data-active] { outline-color: #5CCFE6; }
 
 body.overview #chrome { display: none; }
 
+/* --- 発表者ビュー (?presenter) --- *
+ * body 全体を grid に組み替え、#stage と #presenter を display: contents で
+ * 透明化して、スライドホスト・ノート・バーを直接 grid item として並べる。
+ * 左に現在のスライド、右に次のスライドと発表者ノート、下端にタイマー類。
+ */
+
+#presenter { display: none; }
+
+body.presenter {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'current next'
+    'current notes'
+    'bar     bar';
+  gap: 20px;
+  padding: 20px;
+}
+
+body.presenter #stage,
+body.presenter #presenter { display: contents; }
+
+body.presenter #chrome { display: none; }
+
+body.presenter .slide-host[data-active],
+body.presenter .slide-host[data-next] {
+  display: block;
+  position: static;
+  transform: none;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  align-self: start; /* stretch させない(16:9 を保つ) */
+}
+
+body.presenter .slide-host[data-active] {
+  grid-area: current;
+  /* 横長すぎる/低いウィンドウでは高さ基準で抑える(110px ≈ padding + gap + バー) */
+  width: min(100%, calc((100vh - 110px) * 16 / 9));
+}
+
+body.presenter .slide-host[data-next] {
+  grid-area: next;
+  width: 100%;
+}
+
+/* 次スライドのプレビュー左上に載せるバッジ(最終ページでは空エリアに残る) */
+body.presenter #next-label {
+  grid-area: next;
+  align-self: start;
+  justify-self: start;
+  z-index: 1;
+  margin: 8px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 0.6);
+  color: rgb(255 255 255 / 0.85);
+  font: 11px/1.4 ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.presenter #notes {
+  grid-area: notes;
+  overflow-y: auto;
+  padding: 16px 18px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(255 255 255 / 0.92);
+  font: 20px/1.7 system-ui, sans-serif;
+}
+
+body.presenter #notes:empty::before {
+  content: 'このスライドにノートはありません';
+  color: rgb(255 255 255 / 0.4);
+}
+
+body.presenter #presenter-bar {
+  grid-area: bar;
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  color: rgb(255 255 255 / 0.7);
+  font: 16px/1 ui-monospace, monospace;
+}
+
+body.presenter #timer {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #5CCFE6;
+  font: 700 28px/1 ui-monospace, monospace;
+  cursor: pointer;
+}
+
+body.presenter #clock { margin-left: auto; }
+
 /* --- View Transitions: ページ送りの遷移演出 --- *
  * エンジンが document.startViewTransition() でページ切り替えを包む。
  * ::view-transition-* 疑似要素はドキュメントスコープにしか存在しないため、

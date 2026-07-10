@@ -15,6 +15,12 @@ const state = {
 
 const $ = (sel) => document.querySelector(sel);
 
+// 発表者ビュー(?presenter): 同じエンジンを body.presenter の別レイアウトで
+// 動かし、ページ位置を BroadcastChannel で上映ウィンドウと相互同期する。
+// チャンネル名は pathname 込み(同一オリジンで複数デッキを serve しても混線しない)
+const isPresenter = new URL(location.href).searchParams.has('presenter');
+const channel = new BroadcastChannel(`slidex:${location.pathname}`);
+
 /* ---------------------------------------------------------------- *
  * 起動
  * ---------------------------------------------------------------- */
@@ -23,6 +29,14 @@ async function boot() {
   await loadDeckFromManifest();
 
   setupNavigation();
+  if (isPresenter) setupPresenter();
+
+  // 他ウィンドウのページ移動に追従する(自分の移動は transitionTo が通知する)
+  channel.addEventListener('message', (e) => {
+    if (typeof e.data === 'number' && e.data !== state.current) {
+      goTo(e.data, { replace: true });
+    }
+  });
 
   // 初期ページ: URL (?page=3) があればそこへ、なければ先頭へ
   goTo(pageFromURL(new URL(location.href)) ?? 0, { replace: true });
@@ -178,6 +192,8 @@ async function transitionTo(n) {
   // state は同期的に確定させる(ロード完了まで遅らせると、連打時に
   // 次の入力が古い state.current を見て取りこぼす)
   state.current = n;
+  // 他ウィンドウへ通知。受信側は同じページなら無視するのでループしない
+  channel.postMessage(n);
   try {
     await ensureSlide(n);
   } catch (err) {
@@ -202,13 +218,24 @@ const prev = () => goTo(state.current - 1);
 function render() {
   state.slides.forEach((s, i) => {
     s.host.toggleAttribute('data-active', i === state.current);
+    // 発表者ビューの「次のスライド」プレビュー用(通常表示では表示に影響しない)
+    s.host.toggleAttribute('data-next', i === state.current + 1);
     // base.css の :host([data-overview]) がスライド内の pointer-events を切る
     s.host.toggleAttribute('data-overview', state.overview);
   });
-  $('#page-counter').textContent = `${state.current + 1} / ${state.slides.length}`;
+  const counter = `${state.current + 1} / ${state.slides.length}`;
+  $('#page-counter').textContent = counter;
   $('#progress').style.transform =
     `scaleX(${state.slides.length > 1 ? state.current / (state.slides.length - 1) : 1})`;
   document.body.classList.toggle('overview', state.overview);
+
+  if (isPresenter) {
+    $('#presenter-counter').textContent = counter;
+    // 現在スライドの shadow から発表者ノートを転記(transitionTo が
+    // ensureSlide を待ってから render するので、表示中スライドは常にロード済み)
+    $('#notes').innerHTML =
+      state.slides[state.current]?.shadow.querySelector('aside.notes')?.innerHTML ?? '';
+  }
 }
 
 function setupNavigation() {
@@ -240,6 +267,9 @@ function setupNavigation() {
         break;
       case 'o':
         toggleOverview();
+        break;
+      case 'p':
+        if (!isPresenter) openPresenter();
         break;
     }
   });
@@ -277,12 +307,55 @@ function isInteractive(target) {
 }
 
 function toggleOverview() {
+  if (isPresenter) return; // 発表者ビューのレイアウトと両立しない
   state.overview = !state.overview;
   if (state.overview) {
     // 一覧では全スライドが見えるので、未ロード分を非同期に埋めていく
     for (let i = 0; i < state.slides.length; i++) ensureSlide(i).catch(() => {});
   }
   render();
+}
+
+/* ---------------------------------------------------------------- *
+ * 発表者ビュー
+ * ---------------------------------------------------------------- */
+
+// 現在ページの ?presenter 付き URL を別ウィンドウで開く。
+// ウィンドウ名を固定しているので、2回目以降は既存ウィンドウの再利用になる
+function openPresenter() {
+  const url = urlFor(state.current);
+  url.searchParams.set('presenter', '');
+  window.open(url.href, 'slidex-presenter', 'width=1200,height=720');
+}
+
+// タイマー(クリックでリセット)と現在時刻。レイアウトは shell.css の
+// body.presenter が担い、ノートと次スライドの更新は render() が行う
+function setupPresenter() {
+  document.body.classList.add('presenter');
+  document.title = `発表者ビュー — ${document.title}`;
+
+  const timer = $('#timer');
+  const clock = $('#clock');
+  let started = Date.now();
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const tick = () => {
+    const sec = Math.floor((Date.now() - started) / 1000);
+    timer.textContent =
+      (sec >= 3600 ? `${Math.floor(sec / 3600)}:` : '') +
+      `${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}`;
+    clock.textContent = new Date().toLocaleTimeString('ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+  timer.addEventListener('click', () => {
+    started = Date.now();
+    tick();
+    timer.blur(); // フォーカスが残ると Space がページ送りでなくリセットになる
+  });
+  tick();
+  setInterval(tick, 1000);
 }
 
 /* ---------------------------------------------------------------- *

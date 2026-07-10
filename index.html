@@ -12,6 +12,16 @@
     <div id="progress-track"><div id="progress"></div></div>
     <div id="page-counter"></div>
   </div>
+  <!-- 発表者ビュー(?presenter)専用。通常表示では shell.css が非表示にする -->
+  <div id="presenter">
+    <span id="next-label">Next</span>
+    <div id="notes"></div>
+    <div id="presenter-bar">
+      <button id="timer" type="button" title="クリックで経過時間をリセット">00:00</button>
+      <span id="presenter-counter"></span>
+      <time id="clock"></time>
+    </div>
+  </div>
   <script type="module" src="engine/engine.js"></script>
 </body>
 </html>
