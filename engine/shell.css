@@ -23,7 +23,9 @@ html, body {
   left: 50%;
   width: 1280px;
   height: 720px;
-  transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+  /* 1280x720 をビューポートにフィット(typed arithmetic: 長さ÷長さ=数値) */
+  transform: translate(-50%, -50%)
+             scale(min(calc(100vw / 1280px), calc(100vh / 720px)));
   transform-origin: center;
   display: none;
   background: #fff;

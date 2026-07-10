@@ -3,11 +3,8 @@
  *
  * manifest.json を fetch し、各スライドHTMLを Shadow DOM に注入する。
  * スライドは 1280x720 の固定キャンバスとして書かれ、
- * エンジンが transform: scale() でビューポートにフィットさせる。
+ * ビューポートへのフィットは shell.css の transform: scale() が担う。
  */
-
-const SLIDE_W = 1280;
-const SLIDE_H = 720;
 
 const state = {
   slides: [],      // { host: HTMLElement, shadow: ShadowRoot,
@@ -25,9 +22,7 @@ const $ = (sel) => document.querySelector(sel);
 async function boot() {
   await loadDeckFromManifest();
 
-  setupChrome();
   setupNavigation();
-  setupScaling();
 
   // 初期ページ: URL (?page=3 または #/3) があればそこへ、なければ先頭へ
   goTo(pageFromURL(new URL(location.href)) ?? 0, { replace: true });
@@ -319,43 +314,6 @@ function toggleOverview() {
     for (let i = 0; i < state.slides.length; i++) ensureSlide(i).catch(() => {});
   }
   render();
-}
-
-/* ---------------------------------------------------------------- *
- * スケーリング: 1280x720 をビューポートにフィット
- * ---------------------------------------------------------------- */
-
-function setupScaling() {
-  const fit = () => {
-    const scale = Math.min(window.innerWidth / SLIDE_W, window.innerHeight / SLIDE_H);
-    document.documentElement.style.setProperty('--slide-scale', scale);
-  };
-  window.addEventListener('resize', fit);
-  fit();
-
-  // overview モードなどで host の実寸が 1280px でないとき、
-  // shadow 内の .slide を host 幅に合わせて縮小する
-  const ro = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const w = entry.contentRect.width;
-      entry.target.style.setProperty('--host-scale', w / SLIDE_W);
-    }
-  });
-  for (const s of state.slides) ro.observe(s.host);
-}
-
-/* ---------------------------------------------------------------- *
- * シェルのUI(ページ番号・プログレスバー)
- * ---------------------------------------------------------------- */
-
-function setupChrome() {
-  const chrome = document.createElement('div');
-  chrome.id = 'chrome';
-  chrome.innerHTML = `
-    <div id="progress-track"><div id="progress"></div></div>
-    <div id="page-counter"></div>
-  `;
-  document.body.appendChild(chrome);
 }
 
 /* ---------------------------------------------------------------- *
