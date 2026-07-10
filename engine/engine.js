@@ -1,11 +1,7 @@
 /**
  * slidex engine
  *
- * 2つのモードで動作する:
- *  - dev モード:   manifest.json を fetch し、各スライドHTMLを Shadow DOM に注入する
- *  - export モード: Declarative Shadow DOM としてスライドが既にDOMに存在する
- *                  (document.documentElement に data-exported 属性がある)
- *
+ * manifest.json を fetch し、各スライドHTMLを Shadow DOM に注入する。
  * スライドは 1280x720 の固定キャンバスとして書かれ、
  * エンジンが transform: scale() でビューポートにフィットさせる。
  */
@@ -15,12 +11,12 @@ const SLIDE_H = 720;
 
 const state = {
   slides: [],      // { host: HTMLElement, shadow: ShadowRoot, title: string,
-                   //   file: string|null, loaded: Promise<void>|null }
+                   //   file: string, loaded: Promise<void>|null }
   current: -1,
   overview: false,
 };
 
-// dev モードのみ: 遅延ロードに必要なデッキ情報
+// 遅延ロードに必要なデッキ情報
 let deck = null;   // { path: string }
 
 const $ = (sel) => document.querySelector(sel);
@@ -30,13 +26,7 @@ const $ = (sel) => document.querySelector(sel);
  * ---------------------------------------------------------------- */
 
 export async function boot() {
-  const exported = document.documentElement.hasAttribute('data-exported');
-
-  if (exported) {
-    collectExportedSlides();
-  } else {
-    await loadDeckFromManifest();
-  }
+  await loadDeckFromManifest();
 
   setupChrome();
   setupNavigation();
@@ -47,7 +37,7 @@ export async function boot() {
 }
 
 /* ---------------------------------------------------------------- *
- * dev モード: manifest を読んでスライドを Shadow DOM に注入
+ * manifest を読んでスライドを Shadow DOM に注入
  *
  * 起動時は全スライド分の空の host(プレースホルダ)だけを作り、
  * HTML の fetch と注入は ensureSlide() で表示直前まで遅延する。
@@ -147,7 +137,7 @@ let scriptSeq = 0;
 function runSlideScripts(shadow) {
   for (const old of shadow.querySelectorAll('script[data-slide-run]')) {
     const script = document.createElement('script');
-    // type="text/slide" はエクスポート時にパーサの自動実行を防ぐための印なので剥がす
+    // type="text/slide" は単体表示でブラウザが生実行するのを防ぐための印なので剥がす
     for (const { name, value } of old.attributes) {
       if (name !== 'type') script.setAttribute(name, value);
     }
@@ -159,23 +149,6 @@ function runSlideScripts(shadow) {
       `{ const root = window.__slideRoot['${key}']; delete window.__slideRoot['${key}'];\n` +
       `${old.textContent}\n}`;
     old.replaceWith(script);
-  }
-}
-
-/* ---------------------------------------------------------------- *
- * export モード: DSD で既に存在するスライドを回収
- * ---------------------------------------------------------------- */
-
-function collectExportedSlides() {
-  for (const host of document.querySelectorAll('.slide-host')) {
-    state.slides.push({
-      host,
-      shadow: host.shadowRoot,
-      title: host.dataset.title ?? '',
-      file: null,
-      loaded: Promise.resolve(), // DSD で既に注入済み
-    });
-    runSlideScripts(host.shadowRoot);
   }
 }
 
