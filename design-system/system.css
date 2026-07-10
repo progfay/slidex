@@ -1,103 +1,136 @@
-/*
- * デザインシステム(shadow スコープ)。
- * ここは将来 Claude Design で作ったものに差し替える前提のプレースホルダ。
- * 全スライドの shadow root に adoptedStyleSheets として共有される。
- */
+/* ==========================================================================
+   slidex — system.css
+   Dark, blue-gray, cyan-accent slide theme. 1280×720 canvas.
+   Engine contract: MUST stay dependency-free (no @import/@font-face/@media),
+   MUST scope every selector under .slide, MUST NOT redefine canvas size,
+   box-sizing, overflow or aside.notes (engine/base.css owns those).
+   See design-system/DESIGN.md + design-system/PRINCIPLE.md for the full spec.
+   ========================================================================== */
 
-/* ---- design tokens ---- */
-
+/* ---- 3. Color tokens (contract — names are load-bearing, keep them) ---- */
 .slide {
-  --color-bg: #f7f8f6;
-  --color-ink: #1c2333;
-  --color-muted: #5a6478;
-  --color-accent: #f5c518;
-  --color-code-bg: #1c2333;
-  --color-code-ink: #e8ecf4;
+  --color-bg: #10141F;
+  --color-ink: #E8EDF6;
+  --color-muted: #8C96AB;
+  --color-accent: #5CCFE6;
+  --color-code-bg: #171D2B;
+  --color-code-ink: #DDE4F0;
 
+  /* additional tokens */
+  --color-surface: #171D2B;
+  --color-line: #2A3245;
+  --color-success: #7DD8A0;
+  --color-warning: #F0C674;
+  --color-danger: #F2708A;
+
+  /* 4. Typography tokens (contract) */
   --font-display: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   --font-body: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
+  /* type scale, in real px at 1280×720 */
+  --text-title: 72px;
+  --text-h1: 52px;
+  --text-h2: 32px;
+  --text-body: 24px;
+  --text-muted: 20px;
+  --text-code: 19px;
+
+  /* 5. Spacing (contract) */
   --space-page: 80px;
 
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-body);
-  font-size: 24px;
+  font-size: var(--text-body);
   line-height: 1.7;
+  font-weight: 400;
   padding: var(--space-page);
   display: flex;
   flex-direction: column;
+  gap: 24px;
 }
 
-/* ---- 基本要素 ---- */
+/* ---- 6. Base elements (layout-independent) ---- */
 
 .slide h1 {
   font-family: var(--font-display);
-  font-size: 52px;
-  line-height: 1.25;
+  font-size: var(--text-h1);
   font-weight: 700;
-  margin: 0 0 32px;
+  line-height: 1.25;
+  margin: 0;
   letter-spacing: -0.01em;
 }
 
-.slide h1::after {
-  content: '';
-  display: block;
-  width: 72px;
-  height: 6px;
-  background: var(--color-accent);
-  margin-top: 20px;
-}
-
 .slide h2 {
-  font-size: 32px;
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
   font-weight: 700;
-  margin: 0 0 16px;
+  line-height: 1.3;
+  margin: 0;
 }
 
-.slide p { margin: 0 0 20px; }
+.slide p {
+  font-size: var(--text-body);
+  line-height: 1.7;
+  margin: 0;
+}
 
 .slide ul {
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .slide ul > li {
-  padding-left: 32px;
+  font-size: var(--text-body);
+  line-height: 1.7;
+  padding-left: 28px;
   position: relative;
-  margin-bottom: 16px;
 }
 
 .slide ul > li::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.75em;
-  width: 14px;
+  top: 0.65em;
+  width: 12px;
   height: 3px;
   background: var(--color-accent);
 }
 
-.slide strong { font-weight: 700; }
-.slide .muted { color: var(--color-muted); }
+.slide strong {
+  font-weight: 700;
+}
+
+.slide .accent {
+  color: var(--color-accent);
+}
+
+.slide .muted {
+  color: var(--color-muted);
+  font-size: var(--text-muted);
+}
 
 .slide code {
   font-family: var(--font-mono);
   font-size: 0.85em;
-  background: rgb(28 35 51 / 0.08);
-  padding: 2px 8px;
+  background: var(--color-surface);
+  color: var(--color-code-ink);
+  padding: 0.15em 0.4em;
   border-radius: 4px;
 }
 
 .slide pre {
+  font-family: var(--font-mono);
   background: var(--color-code-bg);
   color: var(--color-code-ink);
-  font-family: var(--font-mono);
-  font-size: 19px;
+  font-size: var(--text-code);
   line-height: 1.7;
-  padding: 28px 32px;
+  padding: 32px;
   border-radius: 8px;
   overflow: hidden;
   margin: 0;
@@ -106,27 +139,42 @@
 .slide pre code {
   background: none;
   padding: 0;
-  font-size: inherit;
+  font-size: 1em;
 }
 
-/* ---- レイアウトクラス(body の class に指定する) ---- */
+/* ---- 7. Syntax-highlight classes (reuse the existing hues only) ---- */
+.slide .tok-kw  { color: var(--color-accent); }
+.slide .tok-fn  { color: #A8B8E8; }
+.slide .tok-str { color: var(--color-success); }
+.slide .tok-num { color: var(--color-warning); }
+.slide .tok-com { color: #5F6B84; }
 
-/* タイトルスライド */
-.layout-title {
+/* ---- Layout classes (contract markup) ---- */
+
+.slide.layout-title {
+  justify-content: center;
+  gap: 20px;
+}
+.slide.layout-title h1 {
+  font-size: var(--text-title);
+  letter-spacing: -0.015em;
+}
+.slide.layout-title .subtitle {
+  color: var(--color-muted);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.slide.layout-section {
+  --color-bg: #E8EDF6;
+  --color-ink: #10141F;
+  --color-muted: #55607A;
+  background: var(--color-bg);
+  color: var(--color-ink);
   justify-content: center;
 }
 
-.layout-title h1 {
-  font-size: 72px;
-}
-
-.layout-title .subtitle {
-  font-size: 28px;
-  color: var(--color-muted);
-}
-
-/* 2カラム */
-.layout-two-col .cols {
+.slide.layout-two-col .cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 56px;
@@ -134,17 +182,47 @@
   min-height: 0;
 }
 
-/* コード中心 */
-.layout-code pre {
+.slide.layout-code pre {
   flex: 1;
   min-height: 0;
 }
 
-/* セクション区切り */
-.layout-section {
+.slide.layout-quote {
   justify-content: center;
-  background: var(--color-ink);
-  color: var(--color-bg);
+  align-items: center;
+  gap: 28px;
+  text-align: center;
+}
+.slide.layout-quote blockquote {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1.35;
+  max-width: 900px;
+}
+.slide.layout-quote .attribution {
+  color: var(--color-muted);
+  font-size: var(--text-muted);
 }
 
-.layout-section h1 { color: inherit; }
+.slide.layout-image {
+  padding: 0;
+  position: relative;
+}
+.slide.layout-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.slide.layout-image .caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 48px var(--space-page);
+  color: #fff;
+  font-size: var(--text-muted);
+  background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+}

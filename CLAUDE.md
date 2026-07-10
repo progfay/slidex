@@ -64,12 +64,19 @@ design-system/ は明示的に指示されない限り変更しない。
 | `layout-section` | セクション区切り(反転配色) |
 | `layout-two-col` | 2カラム。`<div class="cols">` の直下に2つの `<div>` |
 | `layout-code` | コード中心。`<pre><code>` が残り高さいっぱいに広がる |
+| `layout-quote` | 引用。中央寄せの大きな `<blockquote>` + `.attribution` |
+| `layout-image` | 全面画像。`<img>` + 下端スクリムの `.caption` |
 | (`slide` のみ) | 標準。見出し + 本文/箇条書き |
 
 ## デザイントークン(抜粋)
 
 `--color-bg` `--color-ink` `--color-muted` `--color-accent`
+`--color-surface` `--color-line` `--color-success` `--color-warning` `--color-danger`
 `--font-display` `--font-body` `--font-mono` `--space-page`
+`--text-title` `--text-h1` `--text-h2` `--text-body` `--text-muted` `--text-code`
+
+補助クラス: `.accent`(アクセント色の文字)、`.muted`(控えめな文字)、
+コードハイライト用の `.tok-kw` `.tok-fn` `.tok-str` `.tok-num` `.tok-com`。
 
 ## インタラクティブな要素
 
