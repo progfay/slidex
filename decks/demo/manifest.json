@@ -1,5 +1,5 @@
 {
-  "title": "slide-platform demo",
+  "title": "slidex demo",
   "stylesheets": ["../../design-system/system.css"],
   "slides": [
     "01-title.html",

@@ -1,10 +1,10 @@
-# slide-platform
+# slidex
 
 Claude Code でスライドを高速に作るためのプラットフォーム。
 「エンジン」「デザインシステム」「コンテンツ」を分離した3層構成。
 
 ```
-slide-platform/
+slidex/
 ├── engine/           # ビューア: ページ送り・スケーリング・Shadow DOM 注入
 │   ├── shell.html    #   開発時のエントリポイント
 │   ├── engine.js     #   本体(依存ゼロ・ESM)

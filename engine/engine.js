@@ -1,5 +1,5 @@
 /**
- * slide-platform engine
+ * slidex engine
  *
  * 2つのモードで動作する:
  *  - dev モード:   manifest.json を fetch し、各スライドHTMLを Shadow DOM に注入する

@@ -1,4 +1,4 @@
-# slide-platform — スライド生成規約
+# slidex — スライド生成規約
 
 このリポジトリは HTML スライドのプラットフォームである。Claude Code はここで
 **decks/ 以下のコンテンツを生成・編集する**のが主な仕事であり、engine/ と
