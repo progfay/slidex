@@ -4,6 +4,10 @@
 Claude Code はここで **slides/ 以下のコンテンツを生成・編集する**のが主な仕事であり、
 engine/ と design-system/ は明示的に指示されない限り変更しない。
 
+**対応ブラウザは最新の Chromium 系のみ**。エンジンは Navigation API・Sanitizer API・
+View Transitions(types 付き)を fallback なしで前提にしており、未対応ブラウザ向けの
+機能判定や代替経路は書かない。
+
 ## デッキの構成
 
 デッキはリポジトリルートの `manifest.json` と `slides/` で構成する。

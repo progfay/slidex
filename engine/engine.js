@@ -24,7 +24,7 @@ async function boot() {
 
   setupNavigation();
 
-  // 初期ページ: URL (?page=3 または #/3) があればそこへ、なければ先頭へ
+  // 初期ページ: URL (?page=3) があればそこへ、なければ先頭へ
   goTo(pageFromURL(new URL(location.href)) ?? 0, { replace: true });
 }
 
@@ -167,7 +167,6 @@ function pageFromURL(url) {
 function urlFor(n) {
   const url = new URL(location.href);
   url.searchParams.set('page', n + 1);
-  url.hash = '';
   return url;
 }
 
@@ -178,27 +177,15 @@ function goTo(index, { replace = false } = {}) {
     transitionTo(n);
     return;
   }
-  try {
-    // 描画は navigate リスナーの intercept handler(transitionTo)が行う
-    navigation.navigate(url.href, { history: replace ? 'replace' : 'push' });
-  } catch {
-    // 遷移が拒否される環境(サンドボックス等)では URL 同期せず描画だけ行う
-    transitionTo(n);
-  }
+  // 描画は navigate リスナーの intercept handler(transitionTo)が行う
+  navigation.navigate(url.href, { history: replace ? 'replace' : 'push' });
 }
-
-// :active-view-transition-type() が使えるブラウザなら types 付き(オブジェクト
-// 引数)で呼べる。古い実装にオブジェクトを渡すと update が呼ばれず DOM 更新が
-// 消えるため、セレクタ対応で判定する
-const viewTransitionTypesSupported =
-  typeof CSS !== 'undefined' &&
-  CSS.supports('selector(:active-view-transition-type(forward))');
 
 /**
  * スライドの遅延ロードを待ってからページ切り替えを View Transition で包む
- * (演出は shell.css の ::view-transition-* に定義)。未対応ブラウザ・
- * reduced-motion・初回表示はそのまま切り替える。進行中の遷移は新しい
- * startViewTransition が自動でスキップするので連打の考慮は不要。
+ * (演出は shell.css の ::view-transition-* に定義)。reduced-motion・
+ * 初回表示はそのまま切り替える。進行中の遷移は新しい startViewTransition
+ * が自動でスキップするので連打の考慮は不要。
  */
 async function transitionTo(n) {
   const from = state.current;
@@ -213,18 +200,12 @@ async function transitionTo(n) {
   // ロード待ちの間に別ページへ移っていたら描画しない(後発の呼び出しに任せる)
   if (state.current !== n) return;
 
-  const update = () => render();
-  if (
-    !document.startViewTransition ||
-    from === -1 ||
-    from === n ||
-    matchMedia('(prefers-reduced-motion: reduce)').matches
-  ) {
+  if (from === -1 || from === n || matchMedia('(prefers-reduced-motion: reduce)').matches) {
     render();
-  } else if (viewTransitionTypesSupported) {
-    document.startViewTransition({ update, types: [n > from ? 'forward' : 'backward'] });
   } else {
-    document.startViewTransition(update);
+    const vt = document.startViewTransition({ update: render, types: [n > from ? 'forward' : 'backward'] });
+    // 連打で遷移がスキップされた時の AbortError を console に出さない
+    vt.ready.catch(() => {});
   }
   prefetchAround(n);
 }
@@ -258,42 +239,24 @@ function setupNavigation() {
 
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (isInteractive(e.composedPath()[0])) return;
     switch (e.key) {
       case 'ArrowRight':
       case 'ArrowDown':
-      case 'PageDown':
       case ' ':
         e.preventDefault();
-        e.shiftKey ? prev() : next();
+        next();
         break;
       case 'ArrowLeft':
       case 'ArrowUp':
-      case 'PageUp':
         e.preventDefault();
         prev();
         break;
       case 'o':
         toggleOverview();
         break;
-      case 'Escape':
-        if (state.overview) toggleOverview();
-        break;
     }
   });
-
-  // タッチスワイプ
-  let touchX = null;
-  window.addEventListener('touchstart', (e) => (touchX = e.touches[0].clientX), { passive: true });
-  window.addEventListener(
-    'touchend',
-    (e) => {
-      if (touchX === null) return;
-      const dx = e.changedTouches[0].clientX - touchX;
-      if (Math.abs(dx) > 50) (dx < 0 ? next() : prev());
-      touchX = null;
-    },
-    { passive: true },
-  );
 
   // クリック: 画面の左1/4で戻る、それ以外で進む(overview中はスライド選択)
   // 注意: shadow 内の要素は event.target がホストにリターゲットされるため
@@ -310,11 +273,21 @@ function setupNavigation() {
       return;
     }
 
-    const real = path[0];
-    if (real instanceof Element && real.closest('a, button, input, textarea, select, label')) return;
-    const ratio = e.clientX / window.innerWidth;
-    ratio < 0.25 ? prev() : next();
+    if (isInteractive(path[0])) return;
+    if (e.clientX / window.innerWidth < 0.25) {
+      prev();
+    } else {
+      next();
+    }
   });
+}
+
+// スライド内の操作可能な要素(の中)なら、ナビゲーションに入力を奪わせない
+function isInteractive(target) {
+  return (
+    target instanceof Element &&
+    target.closest('a, button, input, textarea, select, label') !== null
+  );
 }
 
 function toggleOverview() {
