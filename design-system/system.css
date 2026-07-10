@@ -24,8 +24,8 @@
   --color-danger: #F2708A;
 
   /* 4. Typography tokens (contract) */
-  --font-display: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
-  --font-body: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  --font-display: 'Avenir Next', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  --font-body: 'Avenir Next', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* type scale, in real px at 1280×720 */
