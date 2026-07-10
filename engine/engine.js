@@ -38,8 +38,8 @@ export async function boot() {
   setupNavigation();
   setupScaling();
 
-  // 初期ページ: ハッシュ (#/3) があればそこへ、なければ先頭へ
-  goTo(pageFromHash() ?? 0, { replace: true });
+  // 初期ページ: URL (?page=3 または #/3) があればそこへ、なければ先頭へ
+  goTo(pageFromURL(new URL(location.href)) ?? 0, { replace: true });
 }
 
 /* ---------------------------------------------------------------- *
@@ -157,22 +157,57 @@ function collectExportedSlides() {
  * ナビゲーション
  * ---------------------------------------------------------------- */
 
-function pageFromHash() {
-  const m = location.hash.match(/^#\/(\d+)$/);
-  if (!m) return null;
-  const n = Number(m[1]) - 1; // URLは1始まり、内部は0始まり
-  return clamp(n, 0, state.slides.length - 1);
+// URL 同期は2系統:
+//  - Navigation API 対応ブラウザ: 実URL (?page=N) で遷移し、navigate イベントを
+//    intercept して描画する(戻る/進む・URL直編集・スライド内リンクも同経路)
+//  - 非対応環境: 従来どおりハッシュ (#/N) + hashchange
+// 入口としては両形式を受け付ける(共有済みの #/3 リンクを壊さない)
+const useNavigationAPI = typeof window.navigation?.navigate === 'function';
+
+function pageFromURL(url) {
+  // URLは1始まり、内部は0始まり
+  const q = url.searchParams.get('page');
+  if (q !== null && /^\d+$/.test(q)) return clamp(Number(q) - 1, 0, state.slides.length - 1);
+  const m = url.hash.match(/^#\/(\d+)$/);
+  if (m) return clamp(Number(m[1]) - 1, 0, state.slides.length - 1);
+  return null;
+}
+
+function urlFor(n) {
+  const url = new URL(location.href);
+  // URLSearchParams で組み直すと deck=../decks/demo が %2F だらけになるので
+  // page パラメータだけを文字列操作で足し替える
+  if (/[?&]page=\d+/.test(url.search)) {
+    url.search = url.search.replace(/([?&]page=)\d+/, `$1${n + 1}`);
+  } else {
+    url.search += `${url.search ? '&' : '?'}page=${n + 1}`;
+  }
+  url.hash = '';
+  return url;
 }
 
 export function goTo(index, { replace = false } = {}) {
   const n = clamp(index, 0, state.slides.length - 1);
-  if (n === state.current) {
-    syncHash(n, replace);
-    render();
-    return;
+  if (useNavigationAPI) {
+    const url = urlFor(n);
+    if (url.href === location.href) {
+      applyPage(n);
+      return;
+    }
+    try {
+      // 描画は navigate リスナーの intercept handler(applyPage)が行う
+      navigation.navigate(url.href, { history: replace ? 'replace' : 'push' });
+      return;
+    } catch {
+      // 遷移が拒否される環境(サンドボックス等)ではハッシュにフォールバック
+    }
   }
-  state.current = n;
+  applyPage(n);
   syncHash(n, replace);
+}
+
+function applyPage(n) {
+  state.current = n;
   render();
 }
 
@@ -199,10 +234,23 @@ function render() {
 }
 
 function setupNavigation() {
-  window.addEventListener('hashchange', () => {
-    const n = pageFromHash();
-    if (n !== null) goTo(n, { replace: true });
-  });
+  if (useNavigationAPI) {
+    navigation.addEventListener('navigate', (e) => {
+      // 別ページへの遷移・ダウンロード等はブラウザに任せる
+      if (!e.canIntercept || e.downloadRequest !== null) return;
+      const url = new URL(e.destination.url);
+      if (url.origin !== location.origin || url.pathname !== location.pathname) return;
+      const n = pageFromURL(url);
+      if (n === null) return;
+      // スライド切り替えでフォーカス/スクロールを動かさない
+      e.intercept({ focusReset: 'manual', scroll: 'manual', handler: () => applyPage(n) });
+    });
+  } else {
+    window.addEventListener('hashchange', () => {
+      const n = pageFromURL(new URL(location.href));
+      if (n !== null) goTo(n, { replace: true });
+    });
+  }
 
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;

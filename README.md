@@ -35,7 +35,10 @@ http://localhost:8000/engine/shell.html?deck=../decks/demo を開く。
 | ← ↑ / 画面左端クリック | 前へ |
 | Home / End | 先頭 / 末尾 |
 | o | 一覧(オーバービュー) |
-| `#/3` | 3ページ目へ直接ジャンプ(URL共有可) |
+| `?page=3` | 3ページ目へ直接ジャンプ(URL共有可。旧形式 `#/3` も受け付ける) |
+
+ページ位置は Navigation API 対応ブラウザでは実URL(`?page=N`)に同期され、
+非対応環境では自動的にハッシュ(`#/N`)にフォールバックする。
 
 ### 新しいデッキを作る
 
@@ -67,3 +70,4 @@ CSS・JS・画像をすべてインライン化した自己完結ファイルを
 
 モダンブラウザ(Chrome / Edge / Firefox / Safari の最新)。
 Constructable Stylesheets と Declarative Shadow DOM を使用。
+Navigation API は任意(あれば実URL遷移、なければハッシュ遷移)。
