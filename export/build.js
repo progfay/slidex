@@ -10,14 +10,27 @@
  * - engine.js / shell.css をインライン
  * - スライドが参照するローカル画像を base64 データURLに変換
  *
- * 依存パッケージなし。HTML は下部の軽量トークナイザで処理する
- * (コメント・script/style の中身・引用符付き属性値を正しくスキップするので、
- * コメント内の </body> や属性値内の ">" 等で壊れない)。
- * 制約: スライド内(スクリプト文字列も含む)に "</template>" という文字列を
- * 書かないこと(DSD の template が途中で閉じてしまう)。
+ * スライドHTMLの解釈は自作せず、手元の Chromium を headless で起動して
+ * Document.parseHTMLUnsafe + Sanitizer API に任せる。ブラウザとの通信は
+ * Node 組み込みの WebSocket + Chrome DevTools Protocol で行うため
+ * npm 依存はゼロのまま。Chromium の探索順:
+ *   1. 環境変数 CHROME_PATH
+ *   2. システムの Chrome / Chromium / Edge
+ *   3. Playwright キャッシュ (~/Library/Caches/ms-playwright など)
+ *
+ * Sanitizer はブロックリスト型 + removeUnsafe() で構成し、XSS-unsafe な
+ * 要素・属性(iframe, embed, on* など)を落とす。<script> だけは通し、
+ * DOM 側で data-slide-run 付きを type="text/slide"(不活性)に正規化、
+ * それ以外の <script> は警告付きで除去する。
+ *
+ * 制約: <script>/<style> の中に "</template>" という文字列を書かない
+ * (DSD の template が途中で閉じる)。地の文では &lt;/template&gt; と書く。
  */
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, rm, readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -67,21 +80,40 @@ async function main() {
   const shellCss = await readFile(path.join(ROOT, 'engine/shell.css'), 'utf8');
   const engineJs = await readFile(path.join(ROOT, 'engine/engine.js'), 'utf8');
 
-  // 各スライドを DSD に変換
-  const hosts = [];
-  for (const file of manifest.slides) {
-    const slidePath = path.join(deckDir, 'slides', file);
-    const html = await readFile(slidePath, 'utf8');
-    const slide = parseSlide(html, file);
-
-    const bodyInner = await transformBody(slide.bodyInner, path.dirname(slidePath), file);
-
-    if (/<\/template/i.test(bodyInner)) {
-      console.warn(`  ! ${file}: "</template>" を含むため DSD が壊れる可能性がある`);
+  const browser = await launchBrowser();
+  try {
+    const supported = await browser.evaluate(
+      `typeof Document.parseHTMLUnsafe === 'function' && typeof Sanitizer === 'function'`,
+    );
+    if (!supported) {
+      throw new Error(
+        'この Chromium は Document.parseHTMLUnsafe / Sanitizer API に未対応。' +
+          '新しい Chrome/Chromium を CHROME_PATH で指定すること',
+      );
     }
 
-    hosts.push(
-      `<div class="slide-host" data-title="${escapeAttr(slide.title ?? file)}">
+    const slidesDir = path.join(deckDir, 'slides');
+    const hosts = [];
+    for (const file of manifest.slides) {
+      const html = await readFile(path.join(slidesDir, file), 'utf8');
+
+      // フェーズ1: パース + サニタイズ + スクリプト正規化。
+      // 画像などローカル資産の参照リストを受け取る(DOM はブラウザ側に保持)
+      const { assets } = await browser.call(parseSlide, { html, exts: Object.keys(MIME) });
+
+      // Node 側で資産を読んでデータURL化
+      const dataUrls = await Promise.all(assets.map((src) => readAsset(slidesDir, src)));
+
+      // フェーズ2: 属性を書き換えてシリアライズ
+      const slide = await browser.call(applyAssetsAndSerialize, { dataUrls });
+
+      for (const w of slide.warnings) console.warn(`  ! ${file}: ${w}`);
+      if (/<\/template/i.test(slide.bodyInner)) {
+        console.warn(`  ! ${file}: <script>/<style> 内に "</template>" があり DSD が壊れる可能性がある`);
+      }
+
+      hosts.push(
+        `<div class="slide-host" data-title="${escapeAttr(slide.title ?? file)}">
 <template shadowrootmode="open">
 <style>
 ${baseCss}
@@ -89,14 +121,14 @@ ${dsCss}
 </style>
 ${slide.headStyles.join('\n')}
 <div class="slide ${escapeAttr(slide.bodyClass)}">
-${bodyInner}
+${slide.bodyInner}
 </div>
 </template>
 </div>`,
-    );
-  }
+      );
+    }
 
-  const out = `<!doctype html>
+    const out = `<!doctype html>
 <html lang="ja" data-exported>
 <head>
 <meta charset="utf-8">
@@ -118,227 +150,231 @@ ${engineJs}
 </html>
 `;
 
-  await mkdir(path.dirname(outPath), { recursive: true });
-  await writeFile(outPath, out);
-  console.log(`✓ ${path.relative(ROOT, outPath)} (${(out.length / 1024).toFixed(1)} KB, ${manifest.slides.length} slides)`);
+    await mkdir(path.dirname(outPath), { recursive: true });
+    await writeFile(outPath, out);
+    console.log(`✓ ${path.relative(ROOT, outPath)} (${(out.length / 1024).toFixed(1)} KB, ${manifest.slides.length} slides)`);
+  } finally {
+    await browser.close();
+  }
+}
+
+async function readAsset(baseDir, src) {
+  try {
+    const filePath = path.resolve(baseDir, src.split(/[?#]/)[0]);
+    const ext = path.extname(filePath).toLowerCase();
+    if (!(ext in MIME)) return null;
+    const data = await readFile(filePath);
+    return `data:${MIME[ext]};base64,${data.toString('base64')}`;
+  } catch {
+    return null;
+  }
 }
 
 /* ---------------------------------------------------------------- *
- * スライドHTMLの分解
+ * ブラウザ内で実行される関数(browser.call で送り込む。Node の変数は
+ * 参照できない。呼び出し間の状態は globalThis.__slide に置く)
  * ---------------------------------------------------------------- */
 
-/**
- * スライドHTMLから title / head 内 <style> / body の class と中身を取り出す。
- */
-function parseSlide(html, file) {
-  const tokens = tokenize(html);
-  const tags = tokens.filter((t) => t.type === 'tag');
+function parseSlide({ html, exts }) {
+  const warnings = [];
 
-  const bodyOpen = tags.find((t) => t.name === 'body' && !t.closing);
-  if (!bodyOpen) throw new Error(`${file}: <body> が見つからない`);
-  const bodyClose = tags.find((t) => t.name === 'body' && t.closing && t.start >= bodyOpen.end);
-  const htmlClose = tags.find((t) => t.name === 'html' && t.closing && t.start >= bodyOpen.end);
-  const bodyEnd = bodyClose?.start ?? htmlClose?.start ?? html.length;
+  // ブロックリスト型 Sanitizer: XSS-unsafe(iframe, embed, object, on* 属性
+  // など)を落とし、それ以外のマークアップはそのまま通す。<script> は
+  // 下で個別に処理するためいったん許可する。
+  const sanitizer = new Sanitizer({ removeElements: [], removeAttributes: [] });
+  sanitizer.removeUnsafe();
+  sanitizer.allowElement('script');
 
-  const titleOpen = tags.find((t) => t.name === 'title' && !t.closing && t.start < bodyOpen.start);
-  const title = titleOpen ? html.slice(titleOpen.end, titleOpen.contentEnd).trim() : null;
+  const doc = Document.parseHTMLUnsafe(html, { sanitizer });
 
-  const headStyles = tags
-    .filter((t) => t.name === 'style' && !t.closing && t.start < bodyOpen.start)
-    .map((t) => html.slice(t.start, t.elementEnd));
+  // <script> の正規化: data-slide-run 付きは type="text/slide"(不活性)に
+  // 統一し、opt-in でないものは除去する
+  for (const script of [...doc.querySelectorAll('script')]) {
+    if (script.hasAttribute('data-slide-run')) {
+      const type = script.getAttribute('type');
+      if (type !== 'text/slide') {
+        if (type) warnings.push(`<script data-slide-run> の type="${type}" を "text/slide" に置き換えた`);
+        script.setAttribute('type', 'text/slide');
+      }
+    } else {
+      warnings.push('data-slide-run のない <script> を除去した');
+      script.remove();
+    }
+  }
+
+  // ローカル画像参照を集める(コード例などテキスト中のパスは対象外)
+  const targets = [];
+  const assets = [];
+  for (const el of doc.body.querySelectorAll('[src], [href]')) {
+    for (const attr of ['src', 'href']) {
+      const value = el.getAttribute(attr);
+      if (!value || /^(https?:|data:|#)/i.test(value)) continue;
+      const m = value.split(/[?#]/)[0].match(/\.[a-z0-9]+$/i);
+      if (!m || !exts.includes(m[0].toLowerCase())) continue;
+      targets.push({ el, attr });
+      assets.push(value);
+    }
+  }
+
+  globalThis.__slide = { doc, targets, warnings };
+  return { assets };
+}
+
+function applyAssetsAndSerialize({ dataUrls }) {
+  const { doc, targets, warnings } = globalThis.__slide;
+  delete globalThis.__slide;
+
+  targets.forEach(({ el, attr }, i) => {
+    if (dataUrls[i]) el.setAttribute(attr, dataUrls[i]);
+    else warnings.push(`画像が見つからないためそのまま残した: ${el.getAttribute(attr)}`);
+  });
 
   return {
-    title,
-    headStyles,
-    bodyClass: getAttr(bodyOpen.attrsRaw, 'class') ?? '',
-    bodyInner: html.slice(bodyOpen.end, bodyEnd),
+    title: doc.title || null,
+    headStyles: [...doc.head.querySelectorAll('style')].map((s) => s.outerHTML),
+    bodyClass: doc.body.className,
+    bodyInner: doc.body.innerHTML,
+    warnings,
   };
 }
 
-/**
- * body の中身に2つの変換をかける:
- *  - data-slide-run スクリプトに type="text/slide" を強制(パーサの自動実行を防ぎ、
- *    エンジン(runSlideScripts)が type を剥がして `root` 付きで実行する)
- *  - ローカル画像の src/href を base64 データURLへ
- * 置換は元文字列のタグ位置に対して行う(テキストやコード例の中は触らない)。
- */
-async function transformBody(bodyInner, baseDir, file) {
-  const edits = []; // { start, end, text }
-
-  for (const token of tokenize(bodyInner)) {
-    if (token.type !== 'tag' || token.closing) continue;
-    const attrsStart = token.end - 1 - token.attrsRaw.length;
-    const attrs = [...matchAttrs(token.attrsRaw)];
-
-    if (token.name === 'script' && attrs.some((a) => a.name === 'data-slide-run')) {
-      const type = attrs.find((a) => a.name === 'type');
-      if (type?.value !== 'text/slide') {
-        if (type) {
-          console.warn(`  ! ${file}: <script data-slide-run> の type="${type.value}" を "text/slide" に置き換えた`);
-          edits.push({
-            start: attrsStart + type.start,
-            end: attrsStart + type.end,
-            text: 'type="text/slide"',
-          });
-        } else {
-          edits.push({ start: token.start + '<script'.length, end: token.start + '<script'.length, text: ' type="text/slide"' });
-        }
-      }
-      continue;
-    }
-
-    for (const attr of attrs) {
-      if (attr.name !== 'src' && attr.name !== 'href') continue;
-      const src = attr.value;
-      if (!src || /^(https?:|data:)/i.test(src)) continue;
-      const ext = path.extname(src.split(/[?#]/)[0]).toLowerCase();
-      if (!(ext in MIME)) continue;
-      try {
-        const data = await readFile(path.resolve(baseDir, src));
-        edits.push({
-          start: attrsStart + attr.valueStart,
-          end: attrsStart + attr.valueEnd,
-          text: `data:${MIME[ext]};base64,${data.toString('base64')}`,
-        });
-      } catch {
-        console.warn(`  ! ${file}: 画像が見つからないためそのまま残した: ${src}`);
-      }
-    }
-  }
-
-  // 後ろから適用して位置ずれを防ぐ
-  edits.sort((a, b) => b.start - a.start);
-  let out = bodyInner;
-  for (const { start, end, text } of edits) {
-    out = out.slice(0, start) + text + out.slice(end);
-  }
-  return out;
-}
-
 /* ---------------------------------------------------------------- *
- * 軽量HTMLトークナイザ
+ * headless Chromium の起動と CDP クライアント(依存ゼロ)
  * ---------------------------------------------------------------- */
 
-// 中身をテキストとして扱う要素(タグとして解釈してはいけない)
-const RAWTEXT = new Set(['script', 'style', 'title', 'textarea']);
+async function findChromium() {
+  if (process.env.CHROME_PATH) {
+    if (existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
+    throw new Error(`CHROME_PATH が存在しない: ${process.env.CHROME_PATH}`);
+  }
 
-const TAG_NAME_RE = /^<(\/?)([a-zA-Z][a-zA-Z0-9-]*)/;
+  const candidates = [
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+  ];
+  for (const p of candidates) if (existsSync(p)) return p;
 
-/**
- * タグとコメントの位置を列挙する。
- *  - { type: 'comment', start, end }
- *  - { type: 'tag', name, closing, start, end, attrsRaw }
- *    rawtext 要素の開始タグには contentEnd(中身の終端)と
- *    elementEnd(閉じタグの後)が付く。
- */
-function tokenize(html) {
-  const tokens = [];
-  let i = 0;
-  while (i < html.length) {
-    const lt = html.indexOf('<', i);
-    if (lt === -1) break;
-
-    if (html.startsWith('<!--', lt)) {
-      const close = html.indexOf('-->', lt + 4);
-      const end = close === -1 ? html.length : close + 3;
-      tokens.push({ type: 'comment', start: lt, end });
-      i = end;
-      continue;
-    }
-    if (html[lt + 1] === '!') {
-      // <!doctype> などの宣言
-      const gt = html.indexOf('>', lt);
-      i = gt === -1 ? html.length : gt + 1;
-      continue;
-    }
-
-    const m = TAG_NAME_RE.exec(html.slice(lt, lt + 80));
-    if (!m) {
-      i = lt + 1;
-      continue;
-    }
-    const closing = m[1] === '/';
-    const name = m[2].toLowerCase();
-    const attrsStart = lt + m[0].length;
-    const end = findTagEnd(html, attrsStart);
-    const token = {
-      type: 'tag',
-      name,
-      closing,
-      start: lt,
-      end,
-      attrsRaw: closing ? '' : html.slice(attrsStart, end - 1),
-    };
-    tokens.push(token);
-    i = end;
-
-    if (!closing && RAWTEXT.has(name)) {
-      const closeRe = new RegExp(`</${name}(?=[\\s/>])`, 'gi');
-      closeRe.lastIndex = end;
-      const cm = closeRe.exec(html);
-      if (cm) {
-        const gt = html.indexOf('>', cm.index);
-        const closeEnd = gt === -1 ? html.length : gt + 1;
-        token.contentEnd = cm.index;
-        token.elementEnd = closeEnd;
-        tokens.push({ type: 'tag', name, closing: true, start: cm.index, end: closeEnd, attrsRaw: '' });
-        i = closeEnd;
-      } else {
-        token.contentEnd = html.length;
-        token.elementEnd = html.length;
-        i = html.length;
+  // Playwright のブラウザキャッシュ(headless shell を含む)を探す
+  const cacheDirs = [
+    path.join(os.homedir(), 'Library/Caches/ms-playwright'),
+    path.join(os.homedir(), '.cache/ms-playwright'),
+  ];
+  for (const cache of cacheDirs) {
+    if (!existsSync(cache)) continue;
+    const entries = (await readdir(cache)).sort().reverse(); // 新しいリビジョン優先
+    for (const entry of entries) {
+      if (!/^chromium(_headless_shell)?-\d+$/.test(entry)) continue;
+      const dir = path.join(cache, entry);
+      for (const sub of await readdir(dir)) {
+        const bins = [
+          path.join(dir, sub, 'chrome-headless-shell'),
+          path.join(dir, sub, 'Chromium.app/Contents/MacOS/Chromium'),
+          path.join(dir, sub, 'chrome'),
+        ];
+        for (const bin of bins) if (existsSync(bin)) return bin;
       }
     }
   }
-  return tokens;
+
+  throw new Error(
+    'Chromium が見つからない。Chrome をインストールするか、CHROME_PATH で実行ファイルを指定すること',
+  );
 }
 
-/** 引用符付き属性値の中の ">" を無視してタグの終わりを探す */
-function findTagEnd(html, from) {
-  let quote = null;
-  for (let i = from; i < html.length; i++) {
-    const c = html[i];
-    if (quote) {
-      if (c === quote) quote = null;
-    } else if (c === '"' || c === "'") {
-      quote = c;
-    } else if (c === '>') {
-      return i + 1;
-    }
-  }
-  return html.length;
-}
+async function launchBrowser() {
+  const bin = await findChromium();
+  const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'slidex-export-'));
+  const proc = spawn(
+    bin,
+    [
+      '--headless',
+      '--remote-debugging-port=0',
+      `--user-data-dir=${userDataDir}`,
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-background-networking',
+      'about:blank',
+    ],
+    { stdio: ['ignore', 'ignore', 'pipe'] },
+  );
 
-const ATTR_RE = /([^\s=/>"']+)(\s*=\s*("[^"]*"|'[^']*'|[^\s>]*))?/g;
-
-/**
- * 属性文字列を先頭から順に解釈して列挙する(引用符内に属性風の文字列が
- * あっても値として消費されるので誤検出しない)。
- * start/end は attrsRaw 内のオフセット。valueStart/valueEnd は引用符の内側。
- */
-function* matchAttrs(attrsRaw) {
-  for (const m of attrsRaw.matchAll(ATTR_RE)) {
-    const name = m[1].toLowerCase();
-    let value = m[3];
-    let valueStart = null;
-    let valueEnd = null;
-    if (value !== undefined) {
-      valueStart = m.index + m[1].length + m[2].length - value.length;
-      if (value.startsWith('"') || value.startsWith("'")) {
-        value = value.slice(1, -1);
-        valueStart += 1;
+  // stderr に出る "DevTools listening on ws://..." からポートを得る
+  const wsEndpoint = await new Promise((resolve, reject) => {
+    let buf = '';
+    const timer = setTimeout(() => reject(new Error(`Chromium が起動しない (${bin})`)), 15000);
+    proc.stderr.on('data', (chunk) => {
+      buf += chunk;
+      const m = buf.match(/DevTools listening on (ws:\/\/\S+)/);
+      if (m) {
+        clearTimeout(timer);
+        resolve(m[1]);
       }
-      valueEnd = valueStart + value.length;
-    }
-    yield { name, value, start: m.index, end: m.index + m[0].length, valueStart, valueEnd };
-  }
-}
+    });
+    proc.on('exit', (code) => {
+      clearTimeout(timer);
+      reject(new Error(`Chromium が終了した (exit ${code}): ${buf.slice(0, 500)}`));
+    });
+  });
 
-function getAttr(attrsRaw, name) {
-  for (const attr of matchAttrs(attrsRaw)) {
-    if (attr.name === name) return attr.value ?? '';
-  }
-  return null;
+  // ページターゲットの WebSocket に接続する
+  const httpOrigin = wsEndpoint.replace(/^ws:/, 'http:').replace(/\/devtools\/.*$/, '');
+  const targets = await (await fetch(`${httpOrigin}/json/list`)).json();
+  const pageTarget = targets.find((t) => t.type === 'page');
+  if (!pageTarget) throw new Error('Chromium のページターゲットが見つからない');
+
+  const ws = new WebSocket(pageTarget.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => {
+    ws.addEventListener('open', resolve, { once: true });
+    ws.addEventListener('error', () => reject(new Error('CDP WebSocket に接続できない')), { once: true });
+  });
+
+  let seq = 0;
+  const pending = new Map();
+  ws.addEventListener('message', (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.id && pending.has(msg.id)) {
+      const { resolve, reject } = pending.get(msg.id);
+      pending.delete(msg.id);
+      if (msg.error) reject(new Error(`CDP: ${msg.error.message}`));
+      else resolve(msg.result);
+    }
+  });
+
+  const send = (method, params = {}) =>
+    new Promise((resolve, reject) => {
+      const id = ++seq;
+      pending.set(id, { resolve, reject });
+      ws.send(JSON.stringify({ id, method, params }));
+    });
+
+  const evaluate = async (expression) => {
+    const { result, exceptionDetails } = await send('Runtime.evaluate', {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+    });
+    if (exceptionDetails) {
+      throw new Error(`ブラウザ内エラー: ${exceptionDetails.exception?.description ?? exceptionDetails.text}`);
+    }
+    return result.value;
+  };
+
+  return {
+    evaluate,
+    // Node 側で定義した関数をブラウザ内で実行する(引数は JSON で渡す)
+    call: (fn, args) => evaluate(`(${fn})(${JSON.stringify(args)})`),
+    close: async () => {
+      ws.close();
+      const exited = new Promise((resolve) => proc.once('exit', resolve));
+      proc.kill();
+      await exited;
+      await rm(userDataDir, { recursive: true, force: true });
+    },
+  };
 }
 
 const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

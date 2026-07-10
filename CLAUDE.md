@@ -97,6 +97,15 @@ python3 -m http.server 8000
 node export/build.js decks/<deck-name>   # → dist/<deck-name>.html
 ```
 
-エクスポートの制約: 画像はスライドからの相対パスで置く(base64 化される)。
-`</template>` という文字列をスライド内に書かない(スクリプト文字列の中でも
-不可。Declarative Shadow DOM の template が途中で閉じてしまう)。
+エクスポートは手元の Chrome/Chromium を headless 起動してスライドを解釈する
+(Document.parseHTMLUnsafe + Sanitizer API。npm 依存はない)。見つからない
+場合は環境変数 `CHROME_PATH` で実行ファイルを指定する。
+
+エクスポートの制約:
+
+- 画像はスライドからの相対パスで置く(base64 化される)
+- `<script>`/`<style>` の中に `</template>` という文字列を書かない
+  (Declarative Shadow DOM の template が途中で閉じてしまう)。地の文では
+  `&lt;/template&gt;` と書けば安全
+- XSS-unsafe なもの(`iframe` `embed` `object`、`on*` 属性など)と
+  `data-slide-run` のない `<script>` はエクスポート時に除去される

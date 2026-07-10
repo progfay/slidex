@@ -56,6 +56,10 @@ CSS・JS・画像をすべてインライン化した自己完結ファイルを
 スライドは Declarative Shadow DOM として書き出されるため、
 開発時と同じスタイル隔離が静的HTMLでも保たれる。
 
+スライドHTMLの解釈は手元の Chrome/Chromium(headless)の
+`Document.parseHTMLUnsafe` + Sanitizer API に任せている。npm 依存はない。
+Chrome が既定の場所に見つからない場合は `CHROME_PATH` で指定する。
+
 ## アーキテクチャ上の要点
 
 - **各スライドは Shadow DOM に隔離**。スライド間の CSS 衝突は構造的に起きない
