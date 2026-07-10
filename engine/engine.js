@@ -148,11 +148,9 @@ function runSlideScripts(shadow) {
  * ナビゲーション
  * ---------------------------------------------------------------- */
 
-// URL 同期 (?page=N) は2系統:
-//  - Navigation API 対応ブラウザ: navigation.navigate() で遷移し、navigate
-//    イベントを intercept して描画する(戻る/進む・URL直編集・スライド内リンクも同経路)
-//  - 非対応環境: history.pushState() + popstate
-const useNavigationAPI = typeof window.navigation?.navigate === 'function';
+// URL 同期 (?page=N) は Navigation API 前提: navigation.navigate() で遷移し、
+// navigate イベントを intercept して描画する
+// (戻る/進む・URL直編集・スライド内リンクも同経路)
 
 function pageFromURL(url) {
   // URLは1始まり、内部は0始まり
@@ -170,22 +168,18 @@ function urlFor(n) {
 
 function goTo(index, { replace = false } = {}) {
   const n = clamp(index, 0, state.slides.length - 1);
-  if (useNavigationAPI) {
-    const url = urlFor(n);
-    if (url.href === location.href) {
-      transitionTo(n);
-      return;
-    }
-    try {
-      // 描画は navigate リスナーの intercept handler(transitionTo)が行う
-      navigation.navigate(url.href, { history: replace ? 'replace' : 'push' });
-      return;
-    } catch {
-      // 遷移が拒否される環境(サンドボックス等)では pushState にフォールバック
-    }
+  const url = urlFor(n);
+  if (url.href === location.href) {
+    transitionTo(n);
+    return;
   }
-  transitionTo(n);
-  syncURL(n, replace);
+  try {
+    // 描画は navigate リスナーの intercept handler(transitionTo)が行う
+    navigation.navigate(url.href, { history: replace ? 'replace' : 'push' });
+  } catch {
+    // 遷移が拒否される環境(サンドボックス等)では URL 同期せず描画だけ行う
+    transitionTo(n);
+  }
 }
 
 // :active-view-transition-type() が使えるブラウザなら types 付き(オブジェクト
@@ -233,13 +227,6 @@ async function transitionTo(n) {
 const next = () => goTo(state.current + 1);
 const prev = () => goTo(state.current - 1);
 
-function syncURL(n, replace) {
-  const url = urlFor(n);
-  if (url.href === location.href) return;
-  if (replace) history.replaceState(null, '', url);
-  else history.pushState(null, '', url);
-}
-
 function render() {
   state.slides.forEach((s, i) => {
     s.host.toggleAttribute('data-active', i === state.current);
@@ -253,24 +240,16 @@ function render() {
 }
 
 function setupNavigation() {
-  if (useNavigationAPI) {
-    navigation.addEventListener('navigate', (e) => {
-      // 別ページへの遷移・ダウンロード等はブラウザに任せる
-      if (!e.canIntercept || e.downloadRequest !== null) return;
-      const url = new URL(e.destination.url);
-      if (url.origin !== location.origin || url.pathname !== location.pathname) return;
-      const n = pageFromURL(url);
-      if (n === null) return;
-      // スライド切り替えでフォーカス/スクロールを動かさない
-      e.intercept({ focusReset: 'manual', scroll: 'manual', handler: () => transitionTo(n) });
-    });
-  } else {
-    // 戻る/進むで URL が変わったときに追従する(pushState は popstate を発火しない)
-    window.addEventListener('popstate', () => {
-      const n = pageFromURL(new URL(location.href));
-      if (n !== null) transitionTo(n);
-    });
-  }
+  navigation.addEventListener('navigate', (e) => {
+    // 別ページへの遷移・ダウンロード等はブラウザに任せる
+    if (!e.canIntercept || e.downloadRequest !== null) return;
+    const url = new URL(e.destination.url);
+    if (url.origin !== location.origin || url.pathname !== location.pathname) return;
+    const n = pageFromURL(url);
+    if (n === null) return;
+    // スライド切り替えでフォーカス/スクロールを動かさない
+    e.intercept({ focusReset: 'manual', scroll: 'manual', handler: () => transitionTo(n) });
+  });
 
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
