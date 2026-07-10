@@ -148,19 +148,16 @@ function runSlideScripts(shadow) {
  * ナビゲーション
  * ---------------------------------------------------------------- */
 
-// URL 同期は2系統:
-//  - Navigation API 対応ブラウザ: 実URL (?page=N) で遷移し、navigate イベントを
-//    intercept して描画する(戻る/進む・URL直編集・スライド内リンクも同経路)
-//  - 非対応環境: 従来どおりハッシュ (#/N) + hashchange
-// 入口としては両形式を受け付ける(共有済みの #/3 リンクを壊さない)
+// URL 同期 (?page=N) は2系統:
+//  - Navigation API 対応ブラウザ: navigation.navigate() で遷移し、navigate
+//    イベントを intercept して描画する(戻る/進む・URL直編集・スライド内リンクも同経路)
+//  - 非対応環境: history.pushState() + popstate
 const useNavigationAPI = typeof window.navigation?.navigate === 'function';
 
 function pageFromURL(url) {
   // URLは1始まり、内部は0始まり
   const q = url.searchParams.get('page');
   if (q !== null && /^\d+$/.test(q)) return clamp(Number(q) - 1, 0, state.slides.length - 1);
-  const m = url.hash.match(/^#\/(\d+)$/);
-  if (m) return clamp(Number(m[1]) - 1, 0, state.slides.length - 1);
   return null;
 }
 
@@ -184,11 +181,11 @@ function goTo(index, { replace = false } = {}) {
       navigation.navigate(url.href, { history: replace ? 'replace' : 'push' });
       return;
     } catch {
-      // 遷移が拒否される環境(サンドボックス等)ではハッシュにフォールバック
+      // 遷移が拒否される環境(サンドボックス等)では pushState にフォールバック
     }
   }
   transitionTo(n);
-  syncHash(n, replace);
+  syncURL(n, replace);
 }
 
 // :active-view-transition-type() が使えるブラウザなら types 付き(オブジェクト
@@ -236,11 +233,11 @@ async function transitionTo(n) {
 const next = () => goTo(state.current + 1);
 const prev = () => goTo(state.current - 1);
 
-function syncHash(n, replace) {
-  const hash = `#/${n + 1}`;
-  if (location.hash === hash) return;
-  if (replace) history.replaceState(null, '', hash);
-  else history.pushState(null, '', hash);
+function syncURL(n, replace) {
+  const url = urlFor(n);
+  if (url.href === location.href) return;
+  if (replace) history.replaceState(null, '', url);
+  else history.pushState(null, '', url);
 }
 
 function render() {
@@ -268,9 +265,10 @@ function setupNavigation() {
       e.intercept({ focusReset: 'manual', scroll: 'manual', handler: () => transitionTo(n) });
     });
   } else {
-    window.addEventListener('hashchange', () => {
+    // 戻る/進むで URL が変わったときに追従する(pushState は popstate を発火しない)
+    window.addEventListener('popstate', () => {
       const n = pageFromURL(new URL(location.href));
-      if (n !== null) goTo(n, { replace: true });
+      if (n !== null) transitionTo(n);
     });
   }
 
