@@ -22,6 +22,8 @@
 /* .slide 自身も border-box にする(padding を 1280x720 の内側に収める) */
 .slide, .slide * { box-sizing: border-box; }
 
+/* overview 中はスライド内のインタラクティブ要素を無効化(クリックは選択に使う) */
+:host([data-overview]) .slide { pointer-events: none; }
 
 /* 発表者ノート(将来のスピーカービュー用)。通常表示では隠す */
 aside.notes { display: none; }

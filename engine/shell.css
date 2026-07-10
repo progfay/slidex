@@ -59,11 +59,6 @@ body.overview .slide-host {
 
 body.overview .slide-host[data-active] { outline-color: #f5c518; }
 
-/* overview 内でスライドを縮小表示するための内部スケール */
-body.overview .slide-host > * {
-  pointer-events: none;
-}
-
 /* --- chrome: プログレスバーとページ番号 --- */
 
 #chrome {

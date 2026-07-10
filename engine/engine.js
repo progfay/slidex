@@ -189,6 +189,8 @@ function syncHash(n, replace) {
 function render() {
   state.slides.forEach((s, i) => {
     s.host.toggleAttribute('data-active', i === state.current);
+    // base.css の :host([data-overview]) がスライド内の pointer-events を切る
+    s.host.toggleAttribute('data-overview', state.overview);
   });
   $('#page-counter').textContent = `${state.current + 1} / ${state.slides.length}`;
   $('#progress').style.transform =
