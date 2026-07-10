@@ -66,6 +66,7 @@ design-system/ は明示的に指示されない限り変更しない。
 | `layout-code` | コード中心。`<pre><code>` が残り高さいっぱいに広がる |
 | `layout-quote` | 引用。中央寄せの大きな `<blockquote>` + `.attribution` |
 | `layout-image` | 全面画像。`<img>` + 下端スクリムの `.caption` |
+| `layout-freeform` | 自由配置。flex 積みを解除した白紙キャンバス(図解・演出向け、絶対配置可) |
 | (`slide` のみ) | 標準。見出し + 本文/箇条書き |
 
 ## デザイントークン(抜粋)

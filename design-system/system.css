@@ -96,9 +96,11 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 0.65em;
-  width: 12px;
-  height: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   background: var(--color-accent);
 }
 
@@ -220,4 +222,19 @@
   color: #fff;
   font-size: var(--text-muted);
   background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+}
+
+/* ---- layout-freeform ----
+   Blank canvas for Claude Code to add arbitrary diagrams/effects on top of.
+   Drops the default flex/column/gap stacking so injected content can be
+   absolutely positioned (or laid out however the diagram needs) without
+   fighting the base .slide flow. Tokens (--color-*, --font-*, --text-*,
+   --space-page) remain available for anything added inside. */
+.slide.layout-freeform {
+  display: block;
+  position: relative;
+  gap: 0;
+}
+.slide.layout-freeform > * {
+  position: relative;
 }
