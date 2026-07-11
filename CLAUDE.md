@@ -163,6 +163,9 @@ python3 -m http.server 8000
 ./scripts/build.sh   # → dist/(index.html + manifest + slides + engine + design-system)
 ```
 
+PDF が欲しいときはビューアで ⌘P / Ctrl+P(1スライド = 1ページで出力される。
+エンジンが対応済みなのでスライド側での対応は不要)。
+
 公開は GitHub Pages(dist/ をサイトルートとして配信)。build.sh は変換なしの
 コピーで、ソースと同じ構造を dist/ に集約する。**Pages の URL 直下を開くと
 そのまま上映**が始まり、各スライドは `slides/NN-slug.html` で単体閲覧もできる。
