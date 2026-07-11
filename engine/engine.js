@@ -251,6 +251,13 @@ function setupNavigation() {
   });
 
   window.addEventListener('keydown', (e) => {
+    // Cmd/Ctrl+P はブラウザの印刷より先に横取りし、全スライドの
+    // ロードを待ってから印刷に入る(未ロードのスライドが白紙で刷られるのを防ぐ)
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key === 'p') {
+      e.preventDefault();
+      exportPDF();
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (isInteractive(e.composedPath()[0])) return;
     switch (e.key) {
@@ -357,6 +364,29 @@ function setupPresenter() {
   tick();
   setInterval(tick, 1000);
 }
+
+/* ---------------------------------------------------------------- *
+ * PDF エクスポート(印刷)
+ *
+ * レイアウトは shell.css の @media print / @page が担う
+ * (1スライド = 1ページ、キャンバスと同寸の 1280x720)。
+ * 印刷ダイアログで「PDF に保存」を選べばそのまま PDF になる。
+ * ---------------------------------------------------------------- */
+
+async function exportPDF() {
+  // スライドは遅延ロードなので、全ページ分の注入と画像のデコードを
+  // 待ってから印刷に入る(print 中に非同期処理は完了できない)
+  await Promise.allSettled(state.slides.map((_, i) => ensureSlide(i)));
+  const imgs = state.slides.flatMap((s) => [...s.shadow.querySelectorAll('img')]);
+  await Promise.allSettled(imgs.map((img) => img.decode()));
+  window.print();
+}
+
+// メニュー等からの印刷(beforeprint は await できない)では間に合わない分の
+// ロードだけ開始しておく。確実な出力経路は Cmd/Ctrl+P(上の exportPDF)
+window.addEventListener('beforeprint', () => {
+  for (let i = 0; i < state.slides.length; i++) ensureSlide(i).catch(() => {});
+});
 
 /* ---------------------------------------------------------------- *
  * util

@@ -233,3 +233,52 @@ html:active-view-transition-type(backward)::view-transition-new(current-slide) {
 @keyframes vt-in-from-left {
   from { opacity: 0; transform: translateX(-48px); }
 }
+
+/* --- 印刷 / PDF エクスポート --- *
+ * ⌘P / Ctrl+P(エンジンが全スライドのロードを待ってから window.print())で
+ * 1スライド = 1ページ の PDF になる。@page をキャンバスと同寸にして
+ * 拡縮なし・余白なしの等倍で刷る。overview / presenter のどのモードで
+ * 印刷しても同じ出力になるよう、画面用レイアウトを !important で打ち消す。
+ */
+
+@page {
+  size: 1280px 720px;
+  margin: 0;
+}
+
+@media print {
+  html, body {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: none !important;
+  }
+
+  #chrome, #presenter { display: none !important; }
+
+  #stage {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  .slide-host {
+    display: block !important;
+    position: static !important;
+    width: 1280px !important;
+    height: 720px !important;
+    aspect-ratio: auto !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    outline: none !important;
+  }
+
+  .slide-host:not(:last-child) { break-after: page; }
+
+  /* 背景色・アクセント色を「背景のグラフィック」設定に関わらず刷る
+     (継承プロパティなので shadow 内のスライドにも効く) */
+  :root { print-color-adjust: exact; }
+}
