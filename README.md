@@ -107,8 +107,8 @@ git checkout template/main -- engine index.html CLAUDE.md
 - **デザインシステムは Constructable Stylesheet を全 shadow root で共有**
   (`adoptedStyleSheets`)。差し替えると全スライドに即反映
 - **スライドは単体でも開ける完全な HTML**。シェル経由では `<link>` を捨てて
-  共有シートに置き換える二重動作。スライド内の相対URLはルート基準で統一
-  (単体表示では `<base href="../">` が基準を合わせ、シェルでは捨てられる)
+  共有シートに置き換える二重動作。相対パスの `src` / `poster` は取り込み時に
+  スライドファイル基準へ解決されるので、単体表示と同じ書き方で動く
 - キャンバスは 1280x720 固定。エンジンが `transform: scale()` でフィットさせる
 
 ## 動作要件

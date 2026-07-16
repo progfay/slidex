@@ -74,8 +74,7 @@ async function loadDeckFromManifest() {
 // スライドHTML取り込み時に捨てるもの:
 // - <link>: 単体表示用のデザインシステム参照(共有シートと重複)
 // - <meta> <title>: 文書メタ情報(シェル側は manifest の title を使う)
-// - <base href="../">: 単体表示でルート基準にするための指定(シェルでは
-//   ドキュメント自体がルートにあり基準が既に一致するので捨てる)
+// - <base>: シェルの相対URL解決を狂わせる
 // - コメント
 // <script> は残す(パーサ挿入なので自動実行されず、data-slide-run 付きだけを
 // runSlideScripts が明示的に実行する)
@@ -97,6 +96,21 @@ function ensureSlide(i) {
     s.loaded = (async () => {
       const html = await fetchText(`slides/${s.file}`);
       const doc = Document.parseHTMLUnsafe(html, { sanitizer: slideSanitizer });
+
+      // 相対の src/poster をスライドファイル基準で解決する。シェルの
+      // ドキュメントはルートにあるため、そのままでは単体表示と基準がずれる
+      const slideURL = new URL(`slides/${s.file}`, location.href);
+      for (const el of doc.querySelectorAll('[src], [poster]')) {
+        for (const attr of ['src', 'poster']) {
+          const v = el.getAttribute(attr);
+          if (v === null) continue;
+          try {
+            el.setAttribute(attr, new URL(v, slideURL).href);
+          } catch {
+            // 不正なURLはそのまま残す(スライド全体の読み込みは止めない)
+          }
+        }
+      }
 
       // スライド固有の <style>(head/body どちらでも)を移植
       s.shadow.append(...doc.querySelectorAll('style'));
