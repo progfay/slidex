@@ -59,15 +59,12 @@ GitHub Pages でも同じ手順で出力できる。
 
 ### GitHub Pages に公開
 
-```sh
-./scripts/build.sh   # → dist/
-```
+ビルドはない。付属の workflow(`.github/workflows/deploy.yml`)が main への
+push でリポジトリ root をそのまま GitHub Pages にデプロイする。**URL 直下で
+そのまま上映**が始まり、各スライドは `slides/NN-slug.html` で単体閲覧もできる。
 
-`index.html` `manifest.json` `slides/` `engine/` `design-system/`(CSS のみ)を
-`dist/` にそのままコピーし、`.nojekyll` を足す。変換は行わない。
-`dist/` を GitHub Pages のサイトルートとして配信すれば、**URL 直下でそのまま
-上映**が始まり、各スライドは `slides/NN-slug.html` で単体閲覧もできる。
-付属の workflow(`.github/workflows/deploy.yml`)が main への push でこれを行う。
+リポジトリの全ファイル(`README.md` や `draft.md` などのソースを含む)が
+そのまま配信される前提の運用なので、public リポジトリで使うこと。
 
 ### テンプレートの更新を取り込む
 
@@ -77,7 +74,7 @@ GitHub Pages でも同じ手順で出力できる。
 ```sh
 git remote add template https://github.com/progfay/slidex.git
 git fetch template
-git checkout template/main -- engine index.html scripts CLAUDE.md
+git checkout template/main -- engine index.html CLAUDE.md
 ```
 
 デッキ側で手を入れていなければ `design-system` もパスに足してよい
@@ -96,8 +93,7 @@ git checkout template/main -- engine index.html scripts CLAUDE.md
 │   └── base.css      #   全スライド共通の基本レイヤー(1280x720 キャンバス)
 ├── design-system/
 │   └── system.css    # トークン + レイアウト
-├── scripts/build.sh  # GitHub Pages 用に dist/ へサイト一式を集約
-├── .github/workflows/deploy.yml  # main への push で Pages へ自動デプロイ
+├── .github/workflows/deploy.yml  # main への push で root をそのまま Pages へデプロイ
 └── CLAUDE.md         # Claude Code 向けの生成規約(新デッキの始め方を含む)
 ```
 

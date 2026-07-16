@@ -8,9 +8,8 @@
 <body class="slide">
   <h1>GitHub Pages で公開</h1>
   <ul>
-    <li><code>./scripts/build.sh</code> で <code>dist/</code> にサイト一式を集約</li>
-    <li>変換なし — ソースと同じ構造をそのままコピー</li>
-    <li><code>dist/</code> をサイトルートとして GitHub Pages が配信</li>
+    <li>ビルドなし — main への push でリポジトリ root をそのまま配信</li>
+    <li>プレビューと配信物が同一(ローカルで動けば公開後も動く)</li>
     <li>URL 直下で上映開始、<code>slides/NN-slug.html</code> は単体でも閲覧可</li>
   </ul>
   <p class="muted">キー操作: ←→ / Space でページ送り、o で一覧、?page=3 で直接ジャンプ(旧 #/3 も可)</p>
