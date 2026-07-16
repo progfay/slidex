@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 rm -rf dist
 mkdir -p dist/design-system
 
-cp index.html manifest.json dist/
+cp index.html manifest.json favicon.svg dist/
 cp -R engine dist/engine
 cp design-system/*.css dist/design-system/
 cp -R slides dist/slides
