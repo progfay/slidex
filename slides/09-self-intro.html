@@ -5,6 +5,15 @@
   <title>自己紹介</title>
   <link rel="stylesheet" href="../design-system/system.css">
   <style>
+    /* このスライドだけ移植元(should_track_web_platform_trends の self-intro)の
+       配色を踏襲する意図的な例外。トークン名ごと上書きして継承先にも効かせる。
+       .slide より詳細度を上げないと共有シート(adoptedStyleSheets)に負ける */
+    .slide.layout-freeform {
+      --color-bg: #c1d3db;
+      --color-ink: #05061d;
+      --color-accent: #05061d;
+      --color-on-ink: #ffffff;
+    }
     .intro {
       /* 単体表示では body の高さが auto で % が効かないため、
          固定キャンバス(720px)から確定値で導出する */
@@ -29,7 +38,7 @@
     }
     .intro .real-name {
       background: var(--color-ink);
-      color: var(--color-bg);
+      color: var(--color-on-ink);
       padding: 16px 24px;
       border-radius: 8px;
       width: fit-content;
