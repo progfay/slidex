@@ -87,6 +87,7 @@ git checkout template/main -- engine index.html CLAUDE.md
 ├── index.html        # ビューアの入口(開くと上映が始まる)
 ├── manifest.json     # デッキ定義(タイトル・スライドの並び)← デッキごとに編集
 ├── slides/           # 1スライド = 1HTML(NN-slug.html)← デッキごとに編集
+├── assets/           # 画像などのアセット + favicon ← デッキごとに編集
 ├── engine/           # ビューア: ページ送り・スケーリング・Shadow DOM 注入
 │   ├── engine.js     #   本体(依存ゼロ・ESM)
 │   ├── shell.css     #   シェルUI(ステージ・プログレスバー)
@@ -97,7 +98,7 @@ git checkout template/main -- engine index.html CLAUDE.md
 └── CLAUDE.md         # Claude Code 向けの生成規約(新デッキの始め方を含む)
 ```
 
-デッキとして編集するのは `manifest.json` と `slides/` だけ。それ以外は
+デッキとして編集するのは `manifest.json` `slides/` `assets/` だけ。それ以外は
 プラットフォーム部分で、テンプレートから複製されたまま使う。
 
 ## アーキテクチャ上の要点
@@ -106,7 +107,8 @@ git checkout template/main -- engine index.html CLAUDE.md
 - **デザインシステムは Constructable Stylesheet を全 shadow root で共有**
   (`adoptedStyleSheets`)。差し替えると全スライドに即反映
 - **スライドは単体でも開ける完全な HTML**。シェル経由では `<link>` を捨てて
-  共有シートに置き換える二重動作
+  共有シートに置き換える二重動作。スライド内の相対URLはルート基準で統一
+  (単体表示では `<base href="../">` が基準を合わせ、シェルでは捨てられる)
 - キャンバスは 1280x720 固定。エンジンが `transform: scale()` でフィットさせる
 
 ## 動作要件

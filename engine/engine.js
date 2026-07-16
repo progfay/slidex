@@ -74,7 +74,8 @@ async function loadDeckFromManifest() {
 // スライドHTML取り込み時に捨てるもの:
 // - <link>: 単体表示用のデザインシステム参照(共有シートと重複)
 // - <meta> <title>: 文書メタ情報(シェル側は manifest の title を使う)
-// - <base>: シェルの相対URL解決を狂わせる
+// - <base href="../">: 単体表示でルート基準にするための指定(シェルでは
+//   ドキュメント自体がルートにあり基準が既に一致するので捨てる)
 // - コメント
 // <script> は残す(パーサ挿入なので自動実行されず、data-slide-run 付きだけを
 // runSlideScripts が明示的に実行する)
