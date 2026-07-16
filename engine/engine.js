@@ -302,9 +302,14 @@ function setupNavigation() {
     }
   });
 
-  // クリック: 画面の左1/4で戻る、それ以外で進む(overview中はスライド選択)
+  // クリック: 画面の左1/4で戻る、右1/4で進む。中央は何もしない
+  // (overview中はスライド選択)
   // 注意: shadow 内の要素は event.target がホストにリターゲットされるため
   // composedPath() で実際のクリック先を見る
+  let pointerDownAt = null;
+  $('#stage').addEventListener('pointerdown', (e) => {
+    pointerDownAt = { x: e.clientX, y: e.clientY };
+  });
   $('#stage').addEventListener('click', (e) => {
     const path = e.composedPath();
 
@@ -318,9 +323,18 @@ function setupNavigation() {
     }
 
     if (isInteractive(path[0])) return;
-    if (e.clientX / window.innerWidth < 0.25) {
+    // テキスト選択を遷移と誤認しない: ドラッグ(押下位置から動いた)か、
+    // 選択が残っている間のクリックでは遷移しない
+    if (pointerDownAt && Math.hypot(e.clientX - pointerDownAt.x, e.clientY - pointerDownAt.y) > 5) {
+      return;
+    }
+    const selection = document.getSelection();
+    if (selection && !selection.isCollapsed) return;
+
+    const ratio = e.clientX / window.innerWidth;
+    if (ratio < 0.25) {
       prev();
-    } else {
+    } else if (ratio > 0.75) {
       next();
     }
   });
