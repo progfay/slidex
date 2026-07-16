@@ -200,6 +200,12 @@ body.presenter #clock { margin-left: auto; }
    overview からの選択時は同名同士がモーフする(グリッドのセル → 全画面) */
 .slide-host[data-active] { view-transition-name: current-slide; }
 
+/* chrome も独立したスナップショットにする。名前を付けないと root スナップ
+   ショットに含まれ、上に重なる current-slide の遷移レイヤーに隠されて
+   しまう。#chrome は #stage より後にあるため、このグループはスライドの
+   グループより上に描画され、遷移中もプログレスバーが見え続ける */
+#chrome { view-transition-name: chrome; }
+
 ::view-transition-old(current-slide),
 ::view-transition-new(current-slide) {
   animation-duration: 0.22s;
