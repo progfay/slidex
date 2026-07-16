@@ -53,6 +53,12 @@
 
 /* ---- 6. Base elements (layout-independent) ---- */
 
+.slide::selection,
+.slide ::selection {
+  background: var(--color-muted);
+  color: var(--color-bg);
+}
+
 .slide h1 {
   font-family: var(--font-display);
   font-size: var(--text-h1);
