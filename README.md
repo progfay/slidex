@@ -12,9 +12,8 @@ Claude Code でスライドを高速に作るための**テンプレートリポ
 2. clone して Claude Code に発表内容を伝える。テンプレート付属のデモスライドを
    削除して新しいデッキに置き換えるところまで Claude Code が行う
    (手順と生成規約は [CLAUDE.md](./CLAUDE.md) に記載)
-3. 公開する場合は **Settings → Pages → Source を「GitHub Actions」** に設定する。
-   以降は main への push で自動デプロイされる(有効化前に失敗した workflow は
-   Re-run するか、Actions タブから "Deploy to GitHub Pages" を手動実行する)
+3. 公開する場合は **Settings → Pages → Source を「Deploy from a branch」
+   (main / root)** に設定する。以降は main への push で自動デプロイされる
 
 ## 使い方
 
@@ -59,9 +58,10 @@ GitHub Pages でも同じ手順で出力できる。
 
 ### GitHub Pages に公開
 
-ビルドはない。付属の workflow(`.github/workflows/deploy.yml`)が main への
-push でリポジトリ root をそのまま GitHub Pages にデプロイする。**URL 直下で
-そのまま上映**が始まり、各スライドは `slides/NN-slug.html` で単体閲覧もできる。
+ビルドはない。Settings → Pages で Source を「Deploy from a branch」(main / root)
+に設定すると、main への push でリポジトリ root がそのまま配信される(ルートの
+`.nojekyll` で Jekyll の加工も入らない)。**URL 直下でそのまま上映**が始まり、
+各スライドは `slides/NN-slug.html` で単体閲覧もできる。
 
 リポジトリの全ファイル(`README.md` や `draft.md` などのソースを含む)が
 そのまま配信される前提の運用なので、public リポジトリで使うこと。
@@ -94,7 +94,7 @@ git checkout template/main -- engine index.html CLAUDE.md
 │   └── base.css      #   全スライド共通の基本レイヤー(1280x720 キャンバス)
 ├── design-system/
 │   └── system.css    # トークン + レイアウト
-├── .github/workflows/deploy.yml  # main への push で root をそのまま Pages へデプロイ
+├── .nojekyll         # Pages に root をそのまま配信させる(Jekyll 加工の無効化)
 └── CLAUDE.md         # Claude Code 向けの生成規約(新デッキの始め方を含む)
 ```
 

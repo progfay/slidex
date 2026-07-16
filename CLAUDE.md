@@ -191,8 +191,9 @@ python3 -m http.server 8000
 PDF が欲しいときはビューアで ⌘P / Ctrl+P(1スライド = 1ページで出力される。
 エンジンが対応済みなのでスライド側での対応は不要)。
 
-公開は GitHub Pages。ビルドはなく、main への push で workflow
-(`.github/workflows/deploy.yml`)がリポジトリ root をそのままデプロイする。
+公開は GitHub Pages(Settings → Pages → Source を「Deploy from a branch」、
+main / root に設定)。ビルドはなく、main への push でリポジトリ root が
+そのまま配信される(ルートの `.nojekyll` で Jekyll の加工も無効化済み)。
 プレビューと配信物が同一なので、ローカルで動けば公開後も動く。
 **Pages の URL 直下を開くとそのまま上映**が始まり、各スライドは
 `slides/NN-slug.html` で単体閲覧もできる。
