@@ -112,6 +112,12 @@ function ensureSlide(i) {
         }
       }
 
+      // スライド内のリンクは上映を離れないよう別タブで開く
+      for (const a of doc.querySelectorAll('a[href]')) {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      }
+
       // スライド固有の <style>(head/body どちらでも)を移植
       s.shadow.append(...doc.querySelectorAll('style'));
 
