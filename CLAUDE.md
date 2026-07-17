@@ -238,6 +238,16 @@ python3 -m http.server 8000
 PDF が欲しいときはビューアで ⌘P / Ctrl+P(1スライド = 1ページで出力される。
 エンジンが対応済みなのでスライド側での対応は不要)。
 
+ローカルサーバーが使えない環境(スマホなど)からのレビュー用に、
+`tools/build-preview.py` でデッキ一式(manifest + slides + デザイン
+システム)を1枚の自己完結HTMLに束ねられる。Claude Code の Artifact として
+出力すればその場でプレビューできる。本番の配信経路(下記)には関与しない、
+レビュー専用のツール。
+
+```sh
+python3 tools/build-preview.py  # dist/preview.html に出力(gitignore対象)
+```
+
 公開は GitHub Pages(Settings → Pages → Source を「Deploy from a branch」、
 main / root に設定)。ビルドはなく、main への push でリポジトリ root が
 そのまま配信される(ルートの `.nojekyll` で Jekyll の加工も無効化済み)。
