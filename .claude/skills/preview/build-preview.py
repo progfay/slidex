@@ -5,7 +5,7 @@ a local server or open multiple relative-path files (e.g. as a Claude
 Artifact from a phone). Not used for the real Pages deployment — the
 production shell (engine/) still fetches slides/ individually.
 
-Usage: python3 tools/build-preview.py [output_path]
+Usage: python3 .claude/skills/preview/build-preview.py [output_path]
   output_path defaults to dist/preview.html (dist/ is gitignored)
 """
 import base64
@@ -16,7 +16,8 @@ import re
 import sys
 from pathlib import Path
 
-repo_root = Path(__file__).resolve().parent.parent
+# this file lives at <repo_root>/.claude/skills/preview/build-preview.py
+repo_root = Path(__file__).resolve().parents[3]
 out_path = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else repo_root / "dist" / "preview.html"
 
 manifest = json.loads((repo_root / "manifest.json").read_text())

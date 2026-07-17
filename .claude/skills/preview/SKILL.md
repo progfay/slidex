@@ -1,17 +1,17 @@
 ---
 name: preview
-description: Bundle the current slidex deck (manifest.json + slides/ + design-system/) into one self-contained HTML file via tools/build-preview.py and publish it as a Claude Artifact, so it can be reviewed on a phone or any device that can't run a local server. Use when the user asks to preview, check, or review the deck/slides — especially "on my phone" — or asks for an Artifact preview of the current slides.
+description: Bundle the current slidex deck (manifest.json + slides/ + design-system/) into one self-contained HTML file via .claude/skills/preview/build-preview.py and publish it as a Claude Artifact, so it can be reviewed on a phone or any device that can't run a local server. Use when the user asks to preview, check, or review the deck/slides — especially "on my phone" — or asks for an Artifact preview of the current slides.
 ---
 
 # デッキのプレビュー
 
 `slides/` は複数ファイルに分かれているため、ローカルサーバーが使えない環境
-(スマホなど)からはそのまま確認できない。`tools/build-preview.py` で1枚の
-自己完結HTMLに束ね、Artifactとして publish する。
+(スマホなど)からはそのまま確認できない。同じディレクトリの
+`build-preview.py` で1枚の自己完結HTMLに束ね、Artifactとして publish する。
 
 ## 手順
 
-1. `python3 tools/build-preview.py` を実行する
+1. `python3 .claude/skills/preview/build-preview.py` を実行する
    (`dist/preview.html` に出力。`dist/` は gitignore 対象なので commit 不要)
 2. 出力された `dist/preview.html` を Artifact として publish する
    - title: `manifest.json` の `title` を使う(例: 「◯◯ (preview)」)
@@ -29,4 +29,4 @@ description: Bundle the current slidex deck (manifest.json + slides/ + design-sy
   (属性はダブルクォート、画像は `src` 属性経由、など)に沿っている限り壊れない
 - Artifactの見た目(上下バーの配色)は `design-system/system.css` の
   トークン値を手動で複製して合わせてある。デザインシステム側のトークンを
-  変更したら `tools/build-preview.py` の `shell_css` も追随させる
+  変更したら `build-preview.py` の `shell_css` も追随させる
