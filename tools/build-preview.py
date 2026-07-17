@@ -33,7 +33,7 @@ shared_css = "\n\n".join(shared_css_parts)
 STYLE_RE = re.compile(r"<style[^>]*>(.*?)</style>", re.DOTALL | re.IGNORECASE)
 BODY_RE = re.compile(r"<body([^>]*)>(.*)</body>", re.DOTALL | re.IGNORECASE)
 CLASS_RE = re.compile(r'class="([^"]*)"')
-SRC_RE = re.compile(r'(src|poster)="([^"]*)"')
+SRC_RE = re.compile(r'(?<![\w-])(src|poster)="([^"]*)"')
 
 
 def to_data_uri(rel_path, from_dir):
