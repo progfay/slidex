@@ -121,7 +121,7 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 50%;
+  top: 0.5lh; /* 複数行でも1行目の縦中央に揃える */
   transform: translateY(-50%);
   width: 10px;
   height: 10px;
