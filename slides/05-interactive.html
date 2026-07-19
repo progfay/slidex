@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>インタラクティブなスライド</title>
+  <title>スクリプト実行は escape hatch</title>
   <link rel="stylesheet" href="../design-system/system.css">
   <style>
     /* スライド固有のスタイルは <style> に書く(shadow に隔離されるので衝突しない) */
@@ -30,9 +30,13 @@
   </style>
 </head>
 <body class="slide">
-  <h1>スクリプトも動く(opt-in)</h1>
-  <p><code>&lt;script type="text/slide" data-slide-run&gt;</code> を付けると shadow root 内で実行される。<br>
-     <code>root</code> 変数で自分の shadow root にアクセスできる。</p>
+  <h1>スクリプト実行は escape hatch <span class="muted">(非推奨)</span></h1>
+  <ul>
+    <li>ほとんどのスライドは JS なしで成立する。動きが欲しくても<span class="accent">まず CSS で</span></li>
+    <li>単体表示ではスクリプトは動かない(表示経路で見え方が変わる)</li>
+    <li>どうしても必要なときだけ <code>&lt;script type="text/slide" data-slide-run&gt;</code></li>
+    <li>shadow root は <code>root</code> 変数で参照する(<code>document</code> は触らない)</li>
+  </ul>
   <div class="counter">
     <output id="count">0</output>
     <button id="inc">+1</button>
@@ -43,5 +47,6 @@
       out.textContent = Number(out.textContent) + 1;
     });
   </script>
+  <aside class="notes">スクリプト実行は非推奨の escape hatch。操作すること自体がスライドの本質であるデモなど、本当に必要な場合だけ使う。このカウンターはその仕組み自体のデモ。</aside>
 </body>
 </html>
