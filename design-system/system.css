@@ -45,6 +45,12 @@
   font-size: var(--text-body);
   line-height: 1.7;
   font-weight: 400;
+  /* 和文組版(Chromium 前提、fallback 不要): 禁則強化・はみ出し防止・
+     和欧間アキ・約物アキ詰め */
+  overflow-wrap: anywhere;
+  line-break: strict;
+  text-autospace: normal;
+  text-spacing-trim: trim-start;
   padding: var(--space-page);
   display: flex;
   flex-direction: column;
@@ -52,6 +58,17 @@
 }
 
 /* ---- 6. Base elements (layout-independent) ---- */
+
+/* 見出し・大きな表示文字: 文字詰め + 文節区切りの均等改行。
+   本文はベタ組み原則のため適用しない */
+.slide h1,
+.slide h2,
+.slide .subtitle,
+.slide blockquote {
+  font-feature-settings: 'palt';
+  word-break: auto-phrase;
+  text-wrap: balance;
+}
 
 .slide::selection,
 .slide ::selection {
@@ -80,6 +97,7 @@
   font-size: var(--text-body);
   line-height: 1.7;
   margin: 0;
+  text-wrap: pretty;
 }
 
 .slide ul {
@@ -96,6 +114,7 @@
   line-height: 1.7;
   padding-left: 28px;
   position: relative;
+  text-wrap: pretty;
 }
 
 .slide ul > li::before {
@@ -130,6 +149,7 @@
   color: var(--color-code-ink);
   padding: 0.15em 0.4em;
   border-radius: 4px;
+  text-autospace: no-autospace;
 }
 
 .slide pre {
@@ -142,6 +162,8 @@
   border-radius: 8px;
   overflow: hidden;
   margin: 0;
+  text-autospace: no-autospace;
+  text-spacing-trim: space-all;
 }
 
 .slide pre code {
