@@ -25,7 +25,7 @@ html, body {
   height: 720px;
   /* 1280x720 をビューポートにフィット(typed arithmetic: 長さ÷長さ=数値) */
   transform: translate(-50%, -50%)
-             scale(min(calc(100vw / 1280px), calc(100vh / 720px)));
+             scale(min(calc(100dvi / 1280px), calc(100dvb / 720px)));
   transform-origin: center;
   display: none;
   background: #fff;
@@ -130,7 +130,7 @@ body.presenter .slide-host[data-next] {
 body.presenter .slide-host[data-active] {
   grid-area: current;
   /* 横長すぎる/低いウィンドウでは高さ基準で抑える(110px ≈ padding + gap + バー) */
-  width: min(100%, calc((100vh - 110px) * 16 / 9));
+  width: min(100%, calc((100dvb - 110px) * 16 / 9));
 }
 
 body.presenter .slide-host[data-next] {
