@@ -11,6 +11,8 @@ Claude Code でスライドを高速に作るための**テンプレートリポ
    Claude Code が行う(手順と生成規約は [CLAUDE.md](./CLAUDE.md) に記載)
 3. 公開する場合は **Settings → Pages → Source を「Deploy from a branch」
    (main / root)** に設定する。以降は main への push で自動デプロイされる
+   (テンプレートから作成したリポジトリでも Pages の設定は引き継がれないため、
+   デッキごとにこの設定が必要)
 
 ## 使い方
 
