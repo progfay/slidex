@@ -32,6 +32,7 @@ for sp in stylesheet_paths:
 shared_css = "\n\n".join(shared_css_parts)
 
 STYLE_RE = re.compile(r"<style[^>]*>(.*?)</style>", re.DOTALL | re.IGNORECASE)
+SCRIPT_RE = re.compile(r"<script[^>]*>.*?</script>", re.DOTALL | re.IGNORECASE)
 BODY_RE = re.compile(r"<body([^>]*)>(.*)</body>", re.DOTALL | re.IGNORECASE)
 CLASS_RE = re.compile(r'class="([^"]*)"')
 SRC_RE = re.compile(r'(?<![\w-])(src|poster)="([^"]*)"')
@@ -70,6 +71,7 @@ for fname in slide_files:
     body_attrs, body_inner = body_match.group(1), body_match.group(2)
     class_match = CLASS_RE.search(body_attrs)
     body_class = class_match.group(1) if class_match else "slide"
+    body_inner = SCRIPT_RE.sub("", body_inner)
     body_inner = inline_assets(body_inner, slides_dir)
 
     templates.append(f'''<template class="slide-tpl" data-file="{html.escape(fname)}">
@@ -272,9 +274,6 @@ runtime_js = """
     shadow.appendChild(tpl.content.cloneNode(true));
     stage.insertBefore(host, annotationLayer);
     hosts.push(host);
-    shadow.querySelectorAll('script[data-slide-run]').forEach(function (s) {
-      try { new Function('root', s.textContent)(shadow); } catch (e) { console.error(e); }
-    });
   });
 
   var files = Array.prototype.map.call(document.querySelectorAll('template.slide-tpl'), function (t) {

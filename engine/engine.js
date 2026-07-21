@@ -75,11 +75,10 @@ async function loadDeckFromManifest() {
 // - <link>: 単体表示用のデザインシステム参照(共有シートと重複)
 // - <meta> <title>: 文書メタ情報(シェル側は manifest の title を使う)
 // - <base>: シェルの相対URL解決を狂わせる
+// - <script>: スライドはスクリプト実行をサポートしない
 // - コメント
-// <script> は残す(パーサ挿入なので自動実行されず、data-slide-run 付きだけを
-// runSlideScripts が明示的に実行する)
 const slideSanitizer = new Sanitizer({
-  removeElements: ['link', 'meta', 'title', 'base'],
+  removeElements: ['link', 'meta', 'title', 'base', 'script'],
   comments: false,
 });
 
@@ -129,9 +128,6 @@ function ensureSlide(i) {
       wrapper.classList.add(...body.classList);
       wrapper.append(...body.childNodes);
       s.shadow.appendChild(wrapper);
-
-      // opt-in スクリプトの実行 (<script data-slide-run>)
-      runSlideScripts(s.shadow);
     })();
     s.loaded.catch(() => (s.loaded = null));
   }
@@ -160,14 +156,6 @@ async function buildSharedSheets(manifest) {
       return sheet;
     }),
   );
-}
-
-// opt-in スクリプト(<script type="text/slide" data-slide-run>)を実行する。
-// スライド内スクリプトには自分の shadow root を `root` として渡す規約
-function runSlideScripts(shadow) {
-  for (const script of shadow.querySelectorAll('script[data-slide-run]')) {
-    new Function('root', script.textContent)(shadow);
-  }
 }
 
 /* ---------------------------------------------------------------- *
