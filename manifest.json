@@ -1,15 +1,7 @@
 {
-  "title": "slidex demo",
+  "title": "Untitled deck",
   "stylesheets": [
     "design-system/system.css"
   ],
-  "slides": [
-    "01-title.html",
-    "02-architecture.html",
-    "03-slide-contract.html",
-    "04-shadow-dom.html",
-    "05-publish.html",
-    "06-quote.html",
-    "07-image.html"
-  ]
+  "slides": []
 }
