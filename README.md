@@ -4,14 +4,11 @@ Claude Code でスライドを高速に作るための**テンプレートリポ
 「エンジン」「デザインシステム」「コンテンツ」を分離した3層構成で、
 **1リポジトリ = 1デッキ**。デッキごとにこのテンプレートから新しいリポジトリを作る。
 
-デモ(テンプレート付属のデッキ): https://progfay.github.io/slidex/
-
 ## 新しいデッキを作る
 
 1. GitHub で **Use this template → Create a new repository** からデッキ名のリポジトリを作る
-2. clone して Claude Code に発表内容を伝える。テンプレート付属のデモスライドを
-   削除して新しいデッキに置き換えるところまで Claude Code が行う
-   (手順と生成規約は [CLAUDE.md](./CLAUDE.md) に記載)
+2. clone して Claude Code に発表内容を伝える。ドラフトからスライド生成まで
+   Claude Code が行う(手順と生成規約は [CLAUDE.md](./CLAUDE.md) に記載)
 3. 公開する場合は **Settings → Pages → Source を「Deploy from a branch」
    (main / root)** に設定する。以降は main への push で自動デプロイされる
 
@@ -95,7 +92,7 @@ git checkout template/main -- engine index.html CLAUDE.md
 ├── design-system/
 │   └── system.css    # トークン + レイアウト
 ├── .nojekyll         # Pages に root をそのまま配信させる(Jekyll 加工の無効化)
-└── CLAUDE.md         # Claude Code 向けの生成規約(新デッキの始め方を含む)
+└── CLAUDE.md         # Claude Code 向けの生成規約
 ```
 
 デッキとして編集するのは `manifest.json` `slides/` `assets/` だけ。それ以外は
