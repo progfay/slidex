@@ -7,7 +7,7 @@ Claude Code でスライドを高速に作るための**テンプレートリポ
 ## 新しいデッキを作る
 
 1. GitHub で **Use this template → Create a new repository** からデッキ名のリポジトリを作る
-2. clone して Claude Code に発表内容を伝える。ドラフトからスライド生成まで
+2. clone して Claude Code に発表内容を伝える。ブレインダンプからスライド生成まで
    Claude Code が行う(手順と生成規約は [CLAUDE.md](./CLAUDE.md) に記載)
 3. 公開する場合は **Settings → Pages → Source を「Deploy from a branch」
    (main / root)** に設定する。以降は main への push で自動デプロイされる
@@ -62,7 +62,7 @@ GitHub Pages でも同じ手順で出力できる。
 `.nojekyll` で Jekyll の加工も入らない)。**URL 直下でそのまま上映**が始まり、
 各スライドは `slides/NN-slug.html` で単体閲覧もできる。
 
-リポジトリの全ファイル(`README.md` や `draft.md` などのソースを含む)が
+リポジトリの全ファイル(`README.md` や `braindump.md` などのソースを含む)が
 そのまま配信される前提の運用なので、public リポジトリで使うこと。
 
 ### テンプレートの更新を取り込む
