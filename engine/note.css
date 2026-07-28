@@ -1,0 +1,149 @@
+/* note.html(発表者ノート一覧)専用のシェルスタイル。スマホの縦スクロールで
+   読み返す用途なので、index.html と違い固定キャンバス・scale は一切使わない */
+
+:root {
+  --topbar-h: 48px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  /* スクロールするのは #note-list だけ。body 自体はスクロールさせない
+     (#topbar を fixed にしても中身が隠れないようにするため) */
+  overflow: hidden;
+  background: #10141F;
+  color: #E8EDF6;
+  font-family: 'Avenir Next', 'Helvetica Neue', Arial,
+    'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+}
+
+/* タイトルとタイマーの帯。常に画面上端に固定する */
+#topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-h);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  background: rgb(16 20 31 / 0.9);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid #2A3245;
+}
+
+#deck-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #8C96AB;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 経過タイマー。タップでリセット(engine/note.js) */
+#timer {
+  flex: none;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  background: rgb(255 255 255 / 0.08);
+  color: #5CCFE6;
+  font: 700 15px/1 ui-monospace, monospace;
+  cursor: pointer;
+}
+
+/* #topbar の下を占める、実際にスクロールする領域。ここが sticky の
+   コンテナ(= .note-preview の張り付き先)になる */
+#note-list {
+  position: fixed;
+  top: var(--topbar-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 実コンテンツの読みやすい幅への中央寄せは内側で行う
+   (#note-list 自体は fixed + フル幅のスクロールコンテナのため) */
+#note-items {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 12px 20px 80px;
+}
+
+#note-items:empty::before {
+  content: 'スライドがありません';
+  display: block;
+  padding: 40px 0;
+  color: #8C96AB;
+  text-align: center;
+}
+
+.note-item {
+  padding: 20px 0;
+  border-bottom: 1px solid #2A3245;
+}
+
+.note-item:last-child {
+  border-bottom: none;
+}
+
+/* スライドのプレビュー。スクロール中は note-item 内で張り付き、そのスライドの
+   ノートを読んでいる間ずっと見える(次の note-item に入ると剥がれる)。
+   余白は top ではなく padding-top で作る(top をずらすと、その隙間分は
+   この要素の外になり背景色で塗れないため)。こうすると要素自体が
+   ビューポート上端(top: 0)から塗りつぶすので、余白部分も含めて
+   下でスクロールするノート本文が透けて見えない */
+.note-preview {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 0 16px;
+  background: #10141F;
+}
+
+/* 幅基準で 16:9 スケールする(base.css の cqw 契約)ので、高さの上限(40dvb)を
+   超えそうな場合は先に幅を詰めて 16:9 を保ったまま全体が収まるようにする
+   (cqw だけに任せると縦方向がクロップされるため) */
+.note-preview-canvas {
+  width: min(100%, calc(40dvb * 16 / 9));
+  aspect-ratio: 16 / 9;
+  max-height: 40dvb;
+  margin: 0 auto;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 0.35);
+}
+
+.note-body {
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.note-body p {
+  margin: 0 0 1em;
+}
+
+.note-body p:last-child {
+  margin-bottom: 0;
+}
+
+.note-body ul,
+.note-body ol {
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+}
+
+.note-empty {
+  color: #8C96AB;
+  font-style: italic;
+}

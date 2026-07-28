@@ -29,18 +29,16 @@ http://localhost:8000/ を開く(ソースと配信物が同じ構造なので�
 | → ↓ Space / 画面右端 1/4 クリック | 次へ |
 | ← ↑ / 画面左端 1/4 クリック | 前へ |
 | o | 一覧(オーバービュー) |
-| p | 発表者ビューを別ウィンドウで開く |
 | ⌘P / Ctrl+P | PDF に出力(印刷ダイアログ) |
 | `?page=3` | 3ページ目へ直接ジャンプ(URL共有可) |
 
 ページ位置は実URL(`?page=N`)に同期される。
 
-### 発表者ビュー
+### ノート
 
-`p` で開く別ウィンドウ(`?presenter`)に、現在のスライド・次のスライド・
-発表者ノート(スライド内の `<aside class="notes">`)・経過タイマー(クリックで
-リセット)・現在時刻を表示する。ページ位置は BroadcastChannel で上映ウィンドウと
-相互同期されるので、どちらのウィンドウで操作してもよい。
+`note.html` を開くと、各スライドの発表者ノート(`<aside class="notes">`)を
+ページ順に縦スクロールで一覧できる。スマホでノートだけ読み返す用途で、
+上映(`index.html`)とは同期しない独立したページ。
 
 ### PDF に出力
 
@@ -73,7 +71,7 @@ GitHub Pages でも同じ手順で出力できる。
 ```sh
 git remote add template https://github.com/progfay/slidex.git
 git fetch template
-git checkout template/main -- engine index.html CLAUDE.md
+git checkout template/main -- engine index.html note.html CLAUDE.md
 ```
 
 デッキ側で手を入れていなければ `design-system` もパスに足してよい
@@ -84,13 +82,16 @@ git checkout template/main -- engine index.html CLAUDE.md
 ```
 <デッキ名>/
 ├── index.html        # ビューアの入口(開くと上映が始まる)
+├── note.html         # 発表者ノートの一覧(縦スクロール、スマホ向け)
 ├── manifest.json     # デッキ定義(タイトル・スライドの並び)← デッキごとに編集
 ├── slides/           # 1スライド = 1HTML(NN-slug.html)← デッキごとに編集
 ├── assets/           # 画像などのアセット + favicon ← デッキごとに編集
 ├── engine/           # ビューア: ページ送り・スケーリング・Shadow DOM 注入
 │   ├── engine.js     #   本体(依存ゼロ・ESM)
 │   ├── shell.css     #   シェルUI(ステージ・プログレスバー)
-│   └── base.css      #   全スライド共通の基本レイヤー(1280x720 キャンバス)
+│   ├── base.css      #   全スライド共通の基本レイヤー(1280x720 キャンバス)
+│   ├── note.js       #   note.html 用(ノート一覧の描画)
+│   └── note.css      #   note.html 用のスタイル
 ├── design-system/
 │   └── system.css    # トークン + レイアウト
 ├── .nojekyll         # Pages に root をそのまま配信させる(Jekyll 加工の無効化)
