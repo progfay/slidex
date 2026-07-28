@@ -100,7 +100,7 @@ body {
   font-family: var(--shell-font);
 }
 
-/* ---- top bar: deck title + mode toggles ---- */
+/* ---- top bar: deck title + note count ---- */
 #topbar {
   flex: none; display: flex; align-items: center; justify-content: space-between;
   gap: 8px; padding: 8px 10px 6px 16px;
@@ -118,10 +118,6 @@ body {
   display: flex; align-items: center; gap: 4px;
   font-variant-numeric: tabular-nums;
 }
-#topbar-actions button[aria-pressed="true"] {
-  color: var(--shell-bg); background: var(--shell-accent); border-color: var(--shell-accent);
-}
-
 /* ---- stage ----
    Mirrors engine/shell.css's own .slide-host rule: fit *both* dimensions
    (not just width) and center the result, instead of base.css's
@@ -130,14 +126,16 @@ body {
    around it, so we have to do that sizing ourselves). Matching this
    avoids a dead letterboxed gap anchored to one side on non-16:9
    viewports (typical on phones). */
-#stage { flex: 1; position: relative; overflow: hidden; min-height: 0; container-type: size; }
-body[data-mode="annotate"] #stage { cursor: crosshair; }
+#stage { flex: 1; position: relative; overflow: hidden; min-height: 0; container-type: size; cursor: crosshair; }
 .slide-host {
   display: none;
   position: absolute; top: 50%; left: 50%;
   width: 1280px; height: 720px;
   transform: translate(-50%, -50%) scale(min(calc(100cqw / 1280px), calc(100cqh / 720px)));
   transform-origin: center;
+  /* Preview is annotate-only: a plain click should drop a pin, not start
+     a text-selection drag across the slide's own content. */
+  -webkit-user-select: none; user-select: none;
 }
 .slide-host[data-active] { display: block; }
 
@@ -151,8 +149,8 @@ body[data-mode="annotate"] #stage { cursor: crosshair; }
 #annotation-layer {
   position: absolute; left: 0; top: 0; width: 0; height: 0;
   z-index: 5; pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--shell-accent);
 }
-body[data-mode="annotate"] #annotation-layer { box-shadow: inset 0 0 0 2px var(--shell-accent); }
 .pin {
   position: absolute; transform: translate(-50%, -50%);
   width: 26px; height: 26px; border-radius: 50%;
@@ -292,13 +290,8 @@ runtime_js = """
   document.getElementById('prev').addEventListener('click', function () { goTo(current - 1); });
   document.getElementById('next').addEventListener('click', function () { goTo(current + 1); });
   stage.addEventListener('click', function (e) {
-    if (document.body.dataset.mode === 'annotate') {
-      if (e.target.closest('.pin') || e.target.closest('#composer')) return;
-      openComposerForNew(e.clientX, e.clientY);
-      return;
-    }
-    var ratio = e.clientX / window.innerWidth;
-    if (ratio < 0.3) goTo(current - 1); else if (ratio > 0.7) goTo(current + 1);
+    if (e.target.closest('.pin') || e.target.closest('#composer')) return;
+    openComposerForNew(e.clientX, e.clientY);
   });
   function isTyping() {
     var a = document.activeElement;
@@ -396,7 +389,7 @@ runtime_js = """
     if (notes.length === 0) {
       var empty = document.createElement('div');
       empty.id = 'empty-note';
-      empty.textContent = '注釈モードでスライドをタップすると指摘を追加できます';
+      empty.textContent = 'スライドをタップすると指摘を追加できます';
       list.appendChild(empty);
       return;
     }
@@ -479,6 +472,12 @@ runtime_js = """
 
   composer.addEventListener('click', function (e) { e.stopPropagation(); });
   composer.querySelector('.cancel').addEventListener('click', closeComposer);
+  composerText.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      composer.querySelector('.save').click();
+    }
+  });
   composerDelete.addEventListener('click', function () {
     if (editingId !== null) removeNote(editingId);
     closeComposer();
@@ -500,15 +499,7 @@ runtime_js = """
     renderList();
   });
 
-  /* ---- mode + drawer toggles ---- */
-  var annotateToggle = document.getElementById('annotate-toggle');
-  annotateToggle.addEventListener('click', function () {
-    var on = document.body.dataset.mode !== 'annotate';
-    document.body.dataset.mode = on ? 'annotate' : '';
-    annotateToggle.setAttribute('aria-pressed', String(on));
-    if (!on) closeComposer();
-  });
-
+  /* ---- drawer toggle ---- */
   var drawer = document.getElementById('drawer');
   document.getElementById('list-toggle').addEventListener('click', function () {
     drawer.classList.toggle('open');
@@ -551,7 +542,6 @@ doc = f"""<!doctype html>
 <div id="topbar">
   <div id="deck-title">{html.escape(title)}</div>
   <div id="topbar-actions">
-    <button id="annotate-toggle" type="button" aria-pressed="false">📍 注釈</button>
     <button id="list-toggle" type="button">📝 <span id="note-count">0</span></button>
   </div>
 </div>
@@ -560,7 +550,7 @@ doc = f"""<!doctype html>
 <div id="annotation-layer"></div>
 <div id="composer">
   <div class="hit"></div>
-  <textarea rows="3" placeholder="気になる点を一言で"></textarea>
+  <textarea rows="3" placeholder="気になる点を一言で(&#8984;+Enterで追加)"></textarea>
   <div class="actions">
     <button class="delete" type="button">削除</button>
     <button class="cancel" type="button">キャンセル</button>
