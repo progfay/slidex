@@ -115,3 +115,6 @@ git checkout template/main -- engine index.html note.html CLAUDE.md
 
 最新の Chromium 系ブラウザ(Chrome / Edge)。Navigation API・Sanitizer API・
 Constructable Stylesheets・View Transitions(types 付き)を fallback なしで使用する。
+
+`note.html`(発表者ノート一覧)のみ iOS Safari など Sanitizer API 非対応環境も
+フォールバックで動作する(スマホから読み返す用途のため)。

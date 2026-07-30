@@ -11,10 +11,36 @@
 const $ = (sel) => document.querySelector(sel);
 
 // スライドHTML取り込み時に捨てるもの(engine.js と同じ契約。詳細はそちらを参照)
-const slideSanitizer = new Sanitizer({
-  removeElements: ['link', 'meta', 'title', 'base', 'script'],
-  comments: false,
-});
+const REMOVE_TAGS = ['link', 'meta', 'title', 'base', 'script'];
+
+// note.html は iOS Safari からも開かれるため、engine.js と違い Sanitizer API に
+// fallback なしで依存しない(README の動作要件は index.html 側の話)
+const supportsSanitizer =
+  typeof Sanitizer === 'function' && typeof Document.parseHTMLUnsafe === 'function';
+
+const slideSanitizer = supportsSanitizer
+  ? new Sanitizer({ removeElements: REMOVE_TAGS, comments: false })
+  : null;
+
+// Sanitizer API 非対応環境向けフォールバック。DOMParser が生成する script は
+// 実行不能なため、link/meta/title/base/script の除去とコメント除去だけ手動で行う
+function parseSlideHTML(html) {
+  if (supportsSanitizer) {
+    return Document.parseHTMLUnsafe(html, { sanitizer: slideSanitizer });
+  }
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  for (const el of doc.querySelectorAll(REMOVE_TAGS.join(', '))) {
+    el.remove();
+  }
+  const walker = doc.createTreeWalker(doc, NodeFilter.SHOW_COMMENT);
+  const comments = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    comments.push(node);
+  }
+  for (const comment of comments) comment.remove();
+  return doc;
+}
 
 async function boot() {
   const manifest = JSON.parse(await fetchText('manifest.json'));
@@ -49,7 +75,7 @@ async function boot() {
 
       try {
         const html = await fetchText(`slides/${file}`);
-        const doc = Document.parseHTMLUnsafe(html, { sanitizer: slideSanitizer });
+        const doc = parseSlideHTML(html);
 
         // 相対の src/poster をスライドファイル基準で解決する(engine.js と同じ)
         const slideURL = new URL(`slides/${file}`, location.href);
