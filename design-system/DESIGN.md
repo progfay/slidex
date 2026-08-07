@@ -4,6 +4,16 @@ Claude Design で `system.css` を制作するための入力仕様。思想と�
 [PRINCIPLE.md](./PRINCIPLE.md) を参照。成果物は **`design-system/system.css`
 1ファイル**。
 
+`system.css` は**デザイントークン(色・タイポグラフィ・余白)と箇条書きの
+基本スタイルだけ**を持つ。レイアウト・装飾・見出しや本文の組版は共通クラス
+化せず、各スライドの HTML 内 `<style>` でそのつどスライド固有に組む
+(「1スライド1ファイルで完結する」の徹底)。
+
+`system.css` の全宣言は `@layer system` に入っている。CSS Cascade Layers の
+規則(無レイヤーの通常宣言は詳細度に関係なくレイヤー内の宣言に必ず勝つ)に
+より、スライド側の `<style>` は無レイヤーのまま書くだけで要素セレクタ1個
+でも `system.css` を上書きできる。詳細度を稼ぐためのクラス重ねは不要。
+
 ## 1. 技術制約(MUST — エンジンとの契約)
 
 これらを破ると表示自体が壊れる。デザイン上の裁量はない。
@@ -20,11 +30,20 @@ Claude Design で `system.css` を制作するための入力仕様。思想と�
 - 以下は `engine/base.css` の責務なので書かない:
   キャンバスサイズと scale、`box-sizing: border-box`、`overflow: hidden`、
   `aside.notes { display: none }`
-- **既存のトークン名とレイアウトクラス名を維持する**(slides/ 内の既存
-  スライドが参照している)。§3 の「契約トークン」と §6 のクラス名は
-  改名・削除しない。追加は自由
+- **既存のトークン名を維持する**(§3 §4 §5 は契約。改名・削除しない。
+  追加は自由)。**箇条書き(§6)の基本スタイルも維持する**(手順3で
+  スライドの HTML を書き起こす際にそのまま使う前提のため)
+- **上記以外の共通クラス(レイアウトクラス・ヘルパークラス・見出しや
+  本文の既定スタイル等)を持ち込まない**。それらは各スライドの `<style>`
+  側の責務
+- **ファイル全体を `@layer system { ... }` で包む**。これによりスライド側の
+  無レイヤー `<style>` が詳細度を気にせず常に上書きできる(詳細度を上げる
+  ハックが要らない)。この layer 化そのものが技術契約であり外さない
 
 ## 2. デザインの方向性(決定事項)
+
+トークンの**値**を決めるときの基準。構造上の強制力はない(各スライドの
+`<style>` がどう組むかは自由だが、トークンを使う限り自然とこの方向に寄る)。
 
 - **ダーク基調・ブルーグレー背景・シアンアクセント**
 - ミニマル。ターミナルモチーフ(プロンプト記号、ウィンドウクローム等)は
@@ -80,88 +99,55 @@ Claude Design で `system.css` を制作するための入力仕様。思想と�
 | 通常スライド h1 | 52px / bold | |
 | h2 | 32px / bold | |
 | 本文・li | 24px / line-height 1.7 | **これより小さい本文を作らない** |
-| 補足(`.muted` 等) | 20px 目安 | 最小サイズ。これ未満は不可 |
+| 補足(muted 相当) | 20px 目安 | 最小サイズ。これ未満は不可 |
 | コード(pre 内) | 19px / line-height 1.7 | |
 
 ダーク背景では細いウェイトが痩せて見える。本文は 400 を基準にしつつ、
 見出しは 700 でしっかりコントラストを付ける。
 
-### 和文組版(Chromium 前提のため fallback 不要)
+見出しや本文そのもののスタイル(font-family / font-size の適用、和文組版の
+調整など)は `system.css` は持たない。各スライドの `<style>` で上記トークン
+を使って組む。和文組版(Chromium 前提のため fallback 不要)は必要に応じて
+スライド側で以下を使う:
 
-- `.slide` 全体: `overflow-wrap: anywhere`(はみ出し防止)+
-  `line-break: strict`(禁則強化)+ `text-autospace: normal`(和欧間アキ)+
+- 全体: `overflow-wrap: anywhere`(はみ出し防止)+ `line-break: strict`
+  (禁則強化)+ `text-autospace: normal`(和欧間アキ)+
   `text-spacing-trim: trim-start`(約物のアキ詰め)
-- 見出し・大きな表示文字(`h1` `h2` `.subtitle` `blockquote`):
-  `font-feature-settings: 'palt'`(文字詰め)+ `word-break: auto-phrase` +
-  `text-wrap: balance`(文節区切りの均等改行)。**本文はベタ組み原則のため
-  適用しない**
-- 本文(`p` `li`): `text-wrap: pretty`(行末の孤立文字を改善)
+- 見出し・大きな表示文字: `font-feature-settings: 'palt'`(文字詰め)+
+  `word-break: auto-phrase` + `text-wrap: balance`(文節区切りの均等改行)。
+  本文はベタ組み原則のため適用しない
+- 本文: `text-wrap: pretty`(行末の孤立文字を改善)
 - `code` / `pre` は `text-autospace: no-autospace` で除外し、`pre` は
   `text-spacing-trim: space-all` で約物を等幅のまま維持する
 
 ## 5. スペーシング
 
-- `--space-page: 80px`(契約。スライドの内側余白)
+- `--space-page: 80px`(契約。スライドの内側余白の参考値。各スライドの
+  `<style>` で `padding` に使う)
 - 余白は詰めるより空ける方向で。1280×720 に対して情報が少なく見えるくらいが
   正しい(PRINCIPLE §4)
 
-## 6. 基本要素とレイアウト
+## 6. 箇条書き(契約 — `system.css` が唯一持つ基本要素スタイル)
 
-`.slide` は `display: flex; flex-direction: column` を基本とし、各レイアウトは
-`justify-content` や子要素の `flex` で高さを配分する。
+`ul` / `li` だけは共通スタイルとして `system.css` に残す(手順3でスライドの
+HTML を書き起こす際、箇条書きは毎回使うため)。
 
-### 基本要素(レイアウト非依存)
+- `ul`: デフォルトマーカーを消し、`flex-direction: column; gap: 16px` で
+  積む
+- `li`: `--text-body` / line-height 1.7、左に `--color-accent` の小さな
+  幾何マーカー(丸)、項目間は `ul` の gap で確保
+- それ以外の基本要素(`h1` `h2` `p` `blockquote` `code` `pre` 等)は
+  `system.css` に持たない。スライドごとに `<style>` で組む
 
-- `h1` `h2` `p`: §4 のスケール。装飾なし
-- `ul > li`: デフォルトマーカーを消し、アクセント色の小さな幾何マーカー
-  (短いバー等、ミニマルな形)に置き換える。項目間は 16px 程度
-- `strong`: bold。色は変えない(色の強調は `.accent` 等の明示クラスで)
-- `.muted`: `--color-muted`
-- `code`(インライン): mono、`--color-surface` 系の淡い面 + 小さな角丸
-- `pre`: `--color-code-bg`、padding 28〜32px、角丸 8px、`overflow: hidden`
-- `::selection`: `--color-muted` 背景 + `--color-bg` の文字。ブラウザ既定の
-  水色はアクセント(シアン)と紛らわしいため上書きする
-
-### レイアウトクラス(`<body class="slide layout-*">` で指定)
-
-**既存(クラス名・マークアップ契約を維持):**
-
-| クラス | 仕様 | マークアップ契約 |
-|---|---|---|
-| (`slide` のみ) | 標準。見出し+本文/箇条書き | — |
-| `layout-title` | 縦中央寄せ。h1 72px、`.subtitle` は muted 28px | `.subtitle` |
-| `layout-section` | セクション区切り。見出しを縦中央寄せして章の切り替わりを示す(配色は反転しない) | — |
-| `layout-code` | `pre` が残り高さいっぱいに広がる | `pre > code` |
-
-**新規追加:**
-
-| クラス | 仕様 | マークアップ契約 |
-|---|---|---|
-| `layout-quote` | キーメッセージ。縦中央寄せ、`blockquote` を 44〜56px の大きな文字で。引用記号の装飾は付けない。`.attribution` は muted で下に | `blockquote` + `.attribution`(任意) |
-| `layout-image` | 画像フルブリード。`.slide` の padding を 0 にし、`img` を `width/height: 100%; object-fit: cover` で全面に。`.caption` は下辺にオーバーレイ(可読性のためのスクリム/グラデーション可 — 数少ない「仕事のある装飾」) | `img` + `.caption`(任意) |
-
-## 7. コードのシンタックスハイライト
-
-ライブラリは使わない。スライド生成時に Claude が `<span class="tok-*">` を
-埋める前提で、**クラスだけ**を定義する。色相はパレットの再利用に限定し、
-新しい色相を持ち込まない(PRINCIPLE §3)。
-
-| クラス | 役割 | 参考色 |
-|---|---|---|
-| `.tok-kw` | キーワード | アクセント(シアン) |
-| `.tok-fn` | 関数・メソッド名 | ink より少し明るく/青み(例 `#A8B8E8`) |
-| `.tok-str` | 文字列 | success 系グリーン |
-| `.tok-num` | 数値・定数 | warning 系アンバー |
-| `.tok-com` | コメント | muted より暗く(例 `#5F6B84`) |
-
-ハイライトなしの単色コードも成立するように、`--color-code-ink` 単体で
-十分読めること。
-
-## 8. 品質チェックリスト(Claude Design の完了条件)
+## 7. 品質チェックリスト(Claude Design の完了条件)
 
 - [ ] トップレベルのセレクタがすべて `.slide` 起点である
+- [ ] 全宣言が `@layer system { ... }` の中に入っている
 - [ ] `@font-face` `@import` `@media`・外部 URL がない
-- [ ] §3 の契約トークン 6 つと §6 の既存クラス 5 つが全て存在する
-- [ ] `slides/` の 8 枚が崩れずに表示される(規約のリファレンスデッキ)
+- [ ] §3 の契約トークン 6 つ、§4 のフォントトークン 3 つ、§5 の
+      `--space-page` が全て存在する
+- [ ] §6 の箇条書きスタイル(`ul` / `li` / `li::before`)が存在する
+- [ ] 箇条書き以外の共通クラス・基本要素スタイル(レイアウトクラス・
+      `.accent` `.muted` 等のヘルパークラス・見出しや本文の既定スタイル)を
+      持ち込んでいない
 - [ ] 本文 24px / ink–bg コントラスト 12:1 / muted–bg 4.5:1 を満たす
-- [ ] 見出し・リスト以外に恒常的な装飾要素がない

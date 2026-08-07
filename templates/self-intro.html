@@ -9,21 +9,25 @@
        見た目を踏襲する意図的な例外。配色・フォント・寸法を公開ページの実測値に
        合わせている。元デッキは 980x552 キャンバス(1rem = 16px)なので、
        1280x720 へ等倍換算した --rem 単位で元 CSS の値をそのまま書き写す。
-       .slide より詳細度を上げないと共有シート(adoptedStyleSheets)に負ける */
-    .slide.layout-freeform {
+       .slide 単体だと共有シート(adoptedStyleSheets)の system.css の
+       .slide(トークン定義)と同じ詳細度で負けるため、ローカル専用の
+       .self-intro を重ねて詳細度を上げる */
+    .slide.self-intro {
       --rem: calc(16px * 720 / 552);
       --color-bg: #c1d3db;
       --color-ink: #05061d;
       --color-on-ink: #ffffff;
 
       /* 元テーマの .slidev-layout 相当 */
+      background: var(--color-bg);
+      color: var(--color-ink);
       padding: calc(2.5 * var(--rem)) calc(3.5 * var(--rem));
       font-family: 'Avenir Next', ui-sans-serif, system-ui, -apple-system,
         'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
       font-size: calc(1.2 * var(--rem));
       line-height: 1.5;
     }
-    .slide.layout-freeform p {
+    .slide p {
       margin: 0;
       font-size: inherit;
       line-height: calc(1.5 * var(--rem));
@@ -98,7 +102,7 @@
       padding-left: var(--rem);
     }
     /* 元と同じ通常の disc マーカーに戻す(システムのアクセント色ドットを打ち消す) */
-    .slide.layout-freeform .description ul {
+    .slide .description ul {
       list-style: disc;
       display: flex;
       flex-direction: column;
@@ -107,13 +111,13 @@
       margin: 0;
       padding: 0;
     }
-    .slide.layout-freeform .description ul > li {
+    .slide .description ul > li {
       font-size: inherit;
       margin: 0 0 0 1.1em;
       padding: 0 0 0 0.2em;
       line-height: 1.8em;
     }
-    .slide.layout-freeform .description ul > li::before {
+    .slide .description ul > li::before {
       content: none;
     }
     .intro .right {
@@ -129,7 +133,7 @@
     }
   </style>
 </head>
-<body class="slide layout-freeform">
+<body class="slide self-intro">
   <div class="intro">
     <div class="left">
       <div class="name">

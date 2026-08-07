@@ -1,260 +1,82 @@
 /* ==========================================================================
    slidex — system.css
-   Dark, blue-gray, cyan-accent slide theme. 1280×720 canvas.
+   デザイントークン(色・タイポグラフィ・余白)のみを定義する。
+   レイアウト・装飾・基本要素のスタイリングは各スライドの <head><style> 側で
+   組む(このファイルはトークンの供給元であり、見た目そのものは持たない)。
+
+   全宣言を @layer system に入れる。スライド固有の <style> は無レイヤーの
+   まま書けば、CSS Cascade Layers の規則(無レイヤーの通常宣言は詳細度に
+   関係なくレイヤー内の宣言に必ず勝つ)により、要素セレクタ1個でもここの
+   スタイルを上書きできる。逆にスライド側で @layer を使うと今度はそちらが
+   埋没するので、スライド固有の <style> の中身は絶対に @layer で囲まない。
+
    Engine contract: MUST stay dependency-free (no @import/@font-face/@media),
    MUST scope every selector under .slide, MUST NOT redefine canvas size,
    box-sizing, overflow or aside.notes (engine/base.css owns those).
    See design-system/DESIGN.md + design-system/PRINCIPLE.md for the full spec.
    ========================================================================== */
 
-/* ---- 3. Color tokens (contract — names are load-bearing, keep them) ---- */
-.slide {
-  --color-bg: #10141F;
-  --color-ink: #E8EDF6;
-  --color-muted: #8C96AB;
-  --color-accent: #5CCFE6;
-  --color-code-bg: #171D2B;
-  --color-code-ink: #DDE4F0;
+@layer system {
+  .slide {
+    /* ---- 3. Color tokens (contract — names are load-bearing, keep them) ---- */
+    --color-bg: #10141F;
+    --color-ink: #E8EDF6;
+    --color-muted: #8C96AB;
+    --color-accent: #5CCFE6;
+    --color-code-bg: #171D2B;
+    --color-code-ink: #DDE4F0;
 
-  /* additional tokens */
-  --color-surface: #171D2B;
-  --color-line: #2A3245;
-  --color-success: #7DD8A0;
-  --color-warning: #F0C674;
-  --color-danger: #F2708A;
+    /* additional tokens */
+    --color-surface: #171D2B;
+    --color-line: #2A3245;
+    --color-success: #7DD8A0;
+    --color-warning: #F0C674;
+    --color-danger: #F2708A;
 
-  /* 4. Typography tokens (contract) */
-  --font-display: 'Avenir Next', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
-  --font-body: 'Avenir Next', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    /* ---- 4. Typography tokens (contract) ---- */
+    --font-display: 'Avenir Next', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    --font-body: 'Avenir Next', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* type scale, in real px at 1280×720 */
-  --text-title: 72px;
-  --text-h1: 52px;
-  --text-h2: 32px;
-  --text-body: 24px;
-  --text-muted: 20px;
-  --text-code: 19px;
+    /* type scale, in real px at 1280×720 */
+    --text-title: 72px;
+    --text-h1: 52px;
+    --text-h2: 32px;
+    --text-body: 24px;
+    --text-muted: 20px;
+    --text-code: 19px;
 
-  /* 5. Spacing (contract) */
-  --space-page: 80px;
+    /* ---- 5. Spacing (contract) ---- */
+    --space-page: 80px;
+  }
 
-  background: var(--color-bg);
-  color: var(--color-ink);
-  font-family: var(--font-body);
-  font-size: var(--text-body);
-  line-height: 1.7;
-  font-weight: 400;
-  /* 和文組版(Chromium 前提、fallback 不要): 禁則強化・はみ出し防止・
-     和欧間アキ・約物アキ詰め */
-  overflow-wrap: anywhere;
-  line-break: strict;
-  text-autospace: normal;
-  text-spacing-trim: trim-start;
-  padding: var(--space-page);
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+  /* ---- 6. 箇条書き(契約 — 手順3のHTML書き起こしで直接使うため維持) ---- */
+  .slide ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
 
-/* ---- 6. Base elements (layout-independent) ---- */
+  .slide ul > li {
+    font-size: var(--text-body);
+    line-height: 1.7;
+    padding-left: 28px;
+    position: relative;
+    text-wrap: pretty;
+  }
 
-/* 見出し・大きな表示文字: 文字詰め + 文節区切りの均等改行。
-   本文はベタ組み原則のため適用しない */
-.slide h1,
-.slide h2,
-.slide .subtitle,
-.slide blockquote {
-  font-feature-settings: 'palt';
-  word-break: auto-phrase;
-  text-wrap: balance;
-}
-
-.slide::selection,
-.slide ::selection {
-  background: var(--color-muted);
-  color: var(--color-bg);
-}
-
-.slide h1 {
-  font-family: var(--font-display);
-  font-size: var(--text-h1);
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.slide h2 {
-  font-family: var(--font-display);
-  font-size: var(--text-h2);
-  font-weight: 700;
-  line-height: 1.3;
-  margin: 0;
-}
-
-.slide p {
-  font-size: var(--text-body);
-  line-height: 1.7;
-  margin: 0;
-  text-wrap: pretty;
-}
-
-.slide ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.slide ul > li {
-  font-size: var(--text-body);
-  line-height: 1.7;
-  padding-left: 28px;
-  position: relative;
-  text-wrap: pretty;
-}
-
-.slide ul > li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.5lh; /* 複数行でも1行目の縦中央に揃える */
-  transform: translateY(-50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--color-accent);
-}
-
-.slide strong {
-  font-weight: 700;
-}
-
-.slide .accent {
-  color: var(--color-accent);
-}
-
-.slide .muted {
-  color: var(--color-muted);
-  font-size: var(--text-muted);
-}
-
-.slide code {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  background: var(--color-surface);
-  color: var(--color-code-ink);
-  padding: 0.15em 0.4em;
-  border-radius: 4px;
-  text-autospace: no-autospace;
-}
-
-.slide pre {
-  font-family: var(--font-mono);
-  background: var(--color-code-bg);
-  color: var(--color-code-ink);
-  font-size: var(--text-code);
-  line-height: 1.7;
-  padding: 32px;
-  border-radius: 8px;
-  overflow: hidden;
-  margin: 0;
-  text-autospace: no-autospace;
-  text-spacing-trim: space-all;
-}
-
-.slide pre code {
-  background: none;
-  padding: 0;
-  font-size: 1em;
-}
-
-/* ---- 7. Syntax-highlight classes (reuse the existing hues only) ---- */
-.slide .tok-kw  { color: var(--color-accent); }
-.slide .tok-fn  { color: #A8B8E8; }
-.slide .tok-str { color: var(--color-success); }
-.slide .tok-num { color: var(--color-warning); }
-.slide .tok-com { color: #5F6B84; }
-
-/* ---- Layout classes (contract markup) ---- */
-
-.slide.layout-title {
-  justify-content: center;
-  gap: 20px;
-}
-.slide.layout-title h1 {
-  font-size: var(--text-title);
-  letter-spacing: -0.015em;
-}
-.slide.layout-title .subtitle {
-  color: var(--color-muted);
-  font-size: 28px;
-  font-weight: 400;
-}
-
-.slide.layout-section {
-  justify-content: center;
-}
-
-.slide.layout-code pre {
-  flex: 1;
-  min-height: 0;
-}
-
-.slide.layout-quote {
-  justify-content: center;
-  align-items: center;
-  gap: 28px;
-  text-align: center;
-}
-.slide.layout-quote blockquote {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 52px;
-  font-weight: 700;
-  line-height: 1.35;
-  max-width: 900px;
-}
-.slide.layout-quote .attribution {
-  color: var(--color-muted);
-  font-size: var(--text-muted);
-}
-
-.slide.layout-image {
-  padding: 0;
-  position: relative;
-}
-.slide.layout-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.slide.layout-image .caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 48px var(--space-page);
-  color: #fff;
-  font-size: var(--text-muted);
-  background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
-}
-
-/* ---- layout-freeform ----
-   Blank canvas for Claude Code to add arbitrary diagrams/effects on top of.
-   Drops the default flex/column/gap stacking so injected content can be
-   absolutely positioned (or laid out however the diagram needs) without
-   fighting the base .slide flow. Tokens (--color-*, --font-*, --text-*,
-   --space-page) remain available for anything added inside. */
-.slide.layout-freeform {
-  display: block;
-  position: relative;
-  gap: 0;
-}
-.slide.layout-freeform > * {
-  position: relative;
+  .slide ul > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5lh; /* 複数行でも1行目の縦中央に揃える */
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
 }
