@@ -1,6 +1,6 @@
 ---
 name: slide-html
-description: スライド1枚のHTMLを新規作成・編集するときのリファレンス。単体表示可能な完全HTML構造、キャンバス1280x720固定、body classに必須の`slide`、assets/画像参照ルール、@font-face禁止などの契約、使えるレイアウト一覧(layout-title など)、デザイントークンの参照先をまとめている。outline.mdをHTML化する手順4、リッチ化する手順5、既存のslides/*.htmlのレイアウトやスタイルを直すときに読む。
+description: スライド1枚のHTMLを新規作成・編集するときのリファレンス。単体表示可能な完全HTML構造、キャンバス1280x720固定、body classに必須の`slide`、assets/画像参照ルール、@font-face禁止などの契約、使えるレイアウト一覧(layout-title など)、デザイントークンの参照先をまとめている。concept.mdをHTMLへ書き起こす手順3、リッチ化する手順5、既存のslides/*.htmlのレイアウトやスタイルを直すときに読む。
 ---
 
 # スライドHTMLの契約
