@@ -29,6 +29,9 @@ base_css = (repo_root / "engine" / "base.css").read_text()
 shared_css_parts = [base_css]
 for sp in stylesheet_paths:
     shared_css_parts.append((repo_root / sp).read_text())
+# preview is annotate-only: links inside the slide must not navigate away
+# (tapping one should drop a pin like anywhere else on the canvas)
+shared_css_parts.append(".slide a { pointer-events: none; }")
 shared_css = "\n\n".join(shared_css_parts)
 
 STYLE_RE = re.compile(r"<style[^>]*>(.*?)</style>", re.DOTALL | re.IGNORECASE)
@@ -110,14 +113,10 @@ body {
   letter-spacing: 0.04em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-#topbar-actions { flex: none; display: flex; gap: 6px; }
-#topbar-actions button {
-  font: inherit; font-size: 13px; color: var(--shell-muted); background: transparent;
-  border: 1px solid var(--shell-line); border-radius: 999px;
-  padding: 5px 10px; min-height: 30px;
-  display: flex; align-items: center; gap: 4px;
-  font-variant-numeric: tabular-nums;
-}
+/* ---- layout: stage column (left) + notes sidebar (right) ---- */
+#main { flex: 1; display: flex; min-height: 0; }
+#stage-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
 /* ---- stage ----
    Mirrors engine/shell.css's own .slide-host rule: fit *both* dimensions
    (not just width) and center the result, instead of base.css's
@@ -149,7 +148,6 @@ body {
 #annotation-layer {
   position: absolute; left: 0; top: 0; width: 0; height: 0;
   z-index: 5; pointer-events: none;
-  box-shadow: inset 0 0 0 2px var(--shell-accent);
 }
 .pin {
   position: absolute; transform: translate(-50%, -50%);
@@ -180,8 +178,8 @@ body {
   background: var(--shell-bg); border: 1px solid var(--shell-line); border-radius: 6px;
   padding: 6px 8px;
 }
-#composer textarea:focus-visible, #copy-box textarea:focus-visible, #topbar-actions button:focus-visible,
-#bar button:focus-visible, .pin:focus-visible, #drawer-header button:focus-visible {
+#composer textarea:focus-visible, #copy-box textarea:focus-visible,
+#bar button:focus-visible, .pin:focus-visible, #sidebar-actions button:focus-visible {
   outline: 2px solid var(--shell-accent); outline-offset: 1px;
 }
 #composer .actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
@@ -215,25 +213,25 @@ body {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ---- notes drawer ---- */
-#drawer {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  background: var(--shell-surface); border-top: 1px solid var(--shell-line);
-  border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,.5);
-  max-height: 70vh; display: flex; flex-direction: column;
-  transform: translateY(100%); transition: transform .2s ease;
+/* ---- notes sidebar (always visible, right side) ---- */
+#sidebar {
+  flex: none; width: min(340px, 38vw); display: flex; flex-direction: column;
+  min-height: 0; background: var(--shell-surface); border-left: 1px solid var(--shell-line);
 }
-#drawer.open { transform: translateY(0); }
-#drawer-header {
-  flex: none; display: flex; align-items: center; gap: 8px;
+#sidebar-header {
+  flex: none; display: flex; flex-direction: column; gap: 8px;
   padding: 12px 14px; border-bottom: 1px solid var(--shell-line);
 }
-#drawer-header h2 { font-size: 14px; margin: 0; flex: 1; font-weight: 600; }
-#drawer-header button {
-  font: inherit; font-size: 13px; border-radius: 6px; padding: 6px 10px; border: 1px solid var(--shell-line);
+#sidebar-header h2 { font-size: 14px; margin: 0; font-weight: 600; }
+#sidebar-actions { display: flex; gap: 8px; }
+#sidebar-actions button {
+  flex: 1; font: inherit; font-size: 13px; border-radius: 6px; padding: 6px 10px; border: 1px solid var(--shell-line);
   background: transparent; color: var(--shell-ink);
 }
-#copy-btn { background: var(--shell-accent); border-color: var(--shell-accent); color: #06262E; font-weight: 600; }
+#copy-btn {
+  background: var(--shell-accent); border-color: var(--shell-accent); color: #06262E; font-weight: 600;
+  font-size: 14px; padding: 10px 12px;
+}
 #copy-box { display: none; padding: 10px 14px; border-bottom: 1px solid var(--shell-line); }
 #copy-box.open { display: block; }
 #copy-box textarea {
@@ -243,9 +241,10 @@ body {
   border-radius: 6px; padding: 8px;
 }
 #copy-box .hint { font-size: 12px; color: var(--shell-muted); margin-top: 6px; }
-#note-list { overflow-y: auto; padding: 10px 14px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
+#note-list { flex: 1; overflow-y: auto; padding: 10px 14px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
 #empty-note { padding: 16px 4px; text-align: center; color: var(--shell-muted); font-size: 13px; }
 .note-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; background: var(--shell-bg); border: 1px solid var(--shell-line); border-radius: 8px; }
+.note-item.is-global { border-color: var(--shell-accent); cursor: pointer; }
 .note-item .badge {
   flex: none; width: 22px; height: 22px; border-radius: 50%;
   background: var(--shell-accent); color: #06262E; font: 700 11px/22px var(--shell-font);
@@ -255,6 +254,13 @@ body {
 .note-item .loc { font-size: 11px; color: var(--shell-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-item .text { font-size: 14px; margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
 .note-item .remove { flex: none; background: transparent; border: none; color: var(--shell-muted); font-size: 18px; line-height: 1; padding: 2px 4px; cursor: pointer; }
+
+/* narrow viewports (phones): stack the sidebar below the stage instead of
+   squeezing it to a sliver on the right */
+@media (max-width: 700px) {
+  #main { flex-direction: column; }
+  #sidebar { width: auto; height: 42%; border-left: none; border-top: 1px solid var(--shell-line); }
+}
 """
 
 runtime_js = """
@@ -277,13 +283,27 @@ runtime_js = """
   var files = Array.prototype.map.call(document.querySelectorAll('template.slide-tpl'), function (t) {
     return t.getAttribute('data-file');
   });
-  var current = 0;
+
+  // Keep the current slide number in the URL hash (not a query string —
+  // avoids fighting with any params the artifact host itself manages) so a
+  // reload or a shared link lands back on the same slide.
+  function readSlideFromURL() {
+    var m = /slide=(\\d+)/.exec(location.hash);
+    var n = m ? parseInt(m[1], 10) - 1 : 0;
+    return isFinite(n) ? Math.max(0, Math.min(hosts.length - 1, n)) : 0;
+  }
+  function writeSlideToURL() {
+    try { history.replaceState(null, '', '#slide=' + (current + 1)); } catch (e) {}
+  }
+
+  var current = readSlideFromURL();
   function render() {
     hosts.forEach(function (h, i) { h.toggleAttribute('data-active', i === current); });
     document.getElementById('counter').textContent =
       (files[current] || '') + '  ·  ' + (current + 1) + ' / ' + hosts.length;
     layoutAnnotationLayer();
     renderPins();
+    writeSlideToURL();
   }
   function goTo(n) { current = Math.max(0, Math.min(hosts.length - 1, n)); closeComposer(); render(); }
 
@@ -291,6 +311,10 @@ runtime_js = """
   document.getElementById('next').addEventListener('click', function () { goTo(current + 1); });
   stage.addEventListener('click', function (e) {
     if (e.target.closest('.pin') || e.target.closest('#composer')) return;
+    // annotations only make sense on the slide itself, not the letterboxed
+    // dead space around it on non-16:9 viewports
+    var r = getSlideRect();
+    if (e.clientX < r.left || e.clientX > r.left + r.width || e.clientY < r.top || e.clientY > r.top + r.height) return;
     openComposerForNew(e.clientX, e.clientY);
   });
   function isTyping() {
@@ -313,6 +337,28 @@ runtime_js = """
   var nextId = 1;
   var editingId = null;
   var pending = null; // { slideIndex, x, y, tag, text } for a not-yet-saved pin
+
+  // Persist across reloads within the same tab (sessionStorage, not
+  // localStorage — this is scratch review state, not meant to outlive
+  // the tab or leak across other tabs on the same origin). Keyed by
+  // pathname so distinct decks published as separate artifacts don't
+  // collide.
+  var STORAGE_KEY = 'slidex-preview-notes:' + location.pathname;
+  function loadNotes() {
+    try {
+      var raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (Array.isArray(saved.notes)) notes = saved.notes;
+      if (typeof saved.nextId === 'number') nextId = saved.nextId;
+    } catch (e) {}
+  }
+  function saveNotes() {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ notes: notes, nextId: nextId }));
+    } catch (e) {}
+  }
+  loadNotes();
 
   // Matches .slide-host's own CSS (fit both dimensions, centered), so this
   // rect is exactly where the slide is actually drawn on non-16:9
@@ -376,10 +422,21 @@ runtime_js = """
       pin.setAttribute('aria-label', '指摘 ' + (i + 1) + ': ' + n.note);
       pin.addEventListener('click', function (e) {
         e.stopPropagation();
-        openComposerForEdit(n, pin);
+        var stageRect = stage.getBoundingClientRect();
+        var pinRect = pin.getBoundingClientRect();
+        openComposerForEdit(n, {
+          x: pinRect.left - stageRect.left + pinRect.width / 2,
+          y: pinRect.top - stageRect.top + pinRect.height / 2,
+        });
       });
       annotationLayer.appendChild(pin);
     });
+  }
+
+  function noteLocation(n) {
+    return n.slideIndex === null
+      ? 'デッキ全体'
+      : n.file + ' — ' + (n.tag ? n.tag + (n.text ? ' “' + n.text + '”' : '') : 'x=' + n.x + ',y=' + n.y);
   }
 
   function renderList() {
@@ -389,27 +446,38 @@ runtime_js = """
     if (notes.length === 0) {
       var empty = document.createElement('div');
       empty.id = 'empty-note';
-      empty.textContent = 'スライドをタップすると指摘を追加できます';
+      empty.textContent = 'スライドをタップ、または「+全体」で指摘を追加できます';
       list.appendChild(empty);
       return;
     }
     notes.forEach(function (n, i) {
       var item = document.createElement('div');
-      item.className = 'note-item';
-      var loc = (n.tag ? n.tag + (n.text ? ' “' + n.text + '”' : '') : 'x=' + n.x + ',y=' + n.y);
+      item.className = 'note-item' + (n.slideIndex === null ? ' is-global' : '');
       item.innerHTML =
         '<div class="badge">' + (i + 1) + '</div>' +
         '<div class="body"><div class="loc"></div><div class="text"></div></div>' +
         '<button class="remove" type="button" aria-label="削除">×</button>';
-      item.querySelector('.loc').textContent = n.file + ' — ' + loc;
+      item.querySelector('.loc').textContent = noteLocation(n);
       item.querySelector('.text').textContent = n.note;
-      item.querySelector('.remove').addEventListener('click', function () { removeNote(n.id); });
+      item.querySelector('.remove').addEventListener('click', function (e) {
+        e.stopPropagation();
+        removeNote(n.id);
+      });
+      // Global (deck-wide) notes have no pin, so the list is their only
+      // route to being edited.
+      if (n.slideIndex === null) {
+        item.addEventListener('click', function () {
+          var stageRect = stage.getBoundingClientRect();
+          openComposerForEdit(n, { x: stageRect.width / 2, y: stageRect.height / 2 });
+        });
+      }
       list.appendChild(item);
     });
   }
 
   function removeNote(id) {
     notes = notes.filter(function (n) { return n.id !== id; });
+    saveNotes();
     renderPins();
     renderList();
   }
@@ -442,23 +510,39 @@ runtime_js = """
     pending = { slideIndex: current, x: pos.x, y: pos.y, tag: hit.tag, text: hit.text };
     editingId = null;
     composerHit.textContent = hit.tag ? hit.tag + (hit.text ? ': “' + hit.text + '”' : '') : ('x=' + pos.x + ', y=' + pos.y);
-    composerText.value = '';
+    // Prefill with the clicked text so a quick note usually just means
+    // trimming/annotating it rather than retyping it from scratch.
+    composerText.value = hit.text || '';
     composerDelete.style.display = 'none';
     composer._anchor = { x: clientX - stageRect.left, y: clientY - stageRect.top };
     composer.classList.add('open');
     positionComposer();
     composerText.focus();
+    composerText.select();
   }
 
-  function openComposerForEdit(note, pinEl) {
+  function openComposerForGlobal() {
+    pending = { slideIndex: null, x: null, y: null, tag: '', text: '' };
+    editingId = null;
+    composerHit.textContent = 'デッキ全体へのコメント';
+    composerText.value = '';
+    composerDelete.style.display = 'none';
+    var stageRect = stage.getBoundingClientRect();
+    composer._anchor = { x: stageRect.width / 2, y: stageRect.height / 2 };
+    composer.classList.add('open');
+    positionComposer();
+    composerText.focus();
+  }
+
+  function openComposerForEdit(note, anchor) {
     pending = null;
     editingId = note.id;
-    var stageRect = stage.getBoundingClientRect();
-    var pinRect = pinEl.getBoundingClientRect();
-    composerHit.textContent = note.tag ? note.tag + (note.text ? ': “' + note.text + '”' : '') : ('x=' + note.x + ', y=' + note.y);
+    composerHit.textContent = note.slideIndex === null
+      ? 'デッキ全体へのコメント'
+      : (note.tag ? note.tag + (note.text ? ': “' + note.text + '”' : '') : ('x=' + note.x + ', y=' + note.y));
     composerText.value = note.note;
     composerDelete.style.display = 'inline-block';
-    composer._anchor = { x: pinRect.left - stageRect.left + pinRect.width / 2, y: pinRect.top - stageRect.top + pinRect.height / 2 };
+    composer._anchor = anchor;
     composer.classList.add('open');
     positionComposer();
     composerText.focus();
@@ -490,28 +574,24 @@ runtime_js = """
       if (n) n.note = text;
     } else if (pending) {
       notes.push({
-        id: nextId++, slideIndex: pending.slideIndex, file: files[pending.slideIndex],
+        id: nextId++, slideIndex: pending.slideIndex,
+        file: pending.slideIndex === null ? null : files[pending.slideIndex],
         x: pending.x, y: pending.y, tag: pending.tag, text: pending.text, note: text,
       });
     }
+    saveNotes();
     closeComposer();
     renderPins();
     renderList();
   });
 
-  /* ---- drawer toggle ---- */
-  var drawer = document.getElementById('drawer');
-  document.getElementById('list-toggle').addEventListener('click', function () {
-    drawer.classList.toggle('open');
-  });
-  document.getElementById('drawer-close').addEventListener('click', function () {
-    drawer.classList.remove('open');
-  });
+  document.getElementById('add-global').addEventListener('click', openComposerForGlobal);
 
   var copyBox = document.getElementById('copy-box');
   var copyText = document.getElementById('copy-text');
   document.getElementById('copy-btn').addEventListener('click', function () {
     var lines = notes.map(function (n, i) {
+      if (n.slideIndex === null) return (i + 1) + '. デッキ全体\\n   → ' + n.note;
       var loc = n.tag ? n.tag + (n.text ? ' “' + n.text + '”' : '') : '';
       return (i + 1) + '. ' + n.file + ' — ' + loc + ' (x=' + n.x + ',y=' + n.y + ' / 1280x720)\\n   → ' + n.note;
     });
@@ -541,10 +621,9 @@ doc = f"""<!doctype html>
 <body>
 <div id="topbar">
   <div id="deck-title">{html.escape(title)}</div>
-  <div id="topbar-actions">
-    <button id="list-toggle" type="button">📝 <span id="note-count">0</span></button>
-  </div>
 </div>
+<div id="main">
+<div id="stage-col">
 <div id="stage">
 {chr(10).join(templates)}
 <div id="annotation-layer"></div>
@@ -563,17 +642,21 @@ doc = f"""<!doctype html>
   <span id="counter"></span>
   <button id="next" type="button" aria-label="次のスライド">&rarr;</button>
 </div>
-<div id="drawer">
-  <div id="drawer-header">
-    <h2>指摘一覧</h2>
-    <button id="copy-btn" type="button">コピー</button>
-    <button id="drawer-close" type="button">閉じる</button>
+</div>
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h2>指摘一覧 <span id="note-count">0</span></h2>
+    <div id="sidebar-actions">
+      <button id="add-global" type="button">＋ 全体へコメント</button>
+      <button id="copy-btn" type="button">コピー</button>
+    </div>
   </div>
   <div id="copy-box">
     <textarea id="copy-text" readonly></textarea>
     <div class="hint">上のテキストは選択済みです。長押し(PCはCmd/Ctrl+C)でコピーできます。</div>
   </div>
   <div id="note-list"></div>
+</div>
 </div>
 <script>{runtime_js}</script>
 </body>
