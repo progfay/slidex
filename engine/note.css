@@ -60,8 +60,7 @@ html, body {
   cursor: pointer;
 }
 
-/* #topbar の下を占める、実際にスクロールする領域。ここが sticky の
-   コンテナ(= .note-preview の張り付き先)になる */
+/* #topbar の下を占める、実際にスクロールする領域 */
 #note-list {
   position: fixed;
   top: var(--topbar-h);
@@ -97,18 +96,16 @@ html, body {
   border-bottom: none;
 }
 
-/* スライドのプレビュー。スクロール中は note-item 内で張り付き、そのスライドの
-   ノートを読んでいる間ずっと見える(次の note-item に入ると剥がれる)。
-   余白は top ではなく padding-top で作る(top をずらすと、その隙間分は
-   この要素の外になり背景色で塗れないため)。こうすると要素自体が
-   ビューポート上端(top: 0)から塗りつぶすので、余白部分も含めて
-   下でスクロールするノート本文が透けて見えない */
+/* 「n / 合計枚数」の表示。プレビューの上に小さく添える */
+.note-index {
+  margin-bottom: 8px;
+  color: #8C96AB;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
 .note-preview {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 12px 0 16px;
-  background: #10141F;
+  padding: 0 0 16px;
 }
 
 /* 幅基準で 16:9 スケールする(base.css の cqw 契約)ので、高さの上限(40dvb)を

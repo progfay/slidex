@@ -54,11 +54,18 @@ async function boot() {
 
   // 各スライドの note item は fetch 前に(順序どおり)追加し、
   // 内容は非同期で後から埋める(並列 fetch でも表示順が崩れない)
+  const total = manifest.slides.length;
+
   await Promise.all(
-    manifest.slides.map(async (file) => {
+    manifest.slides.map(async (file, i) => {
       const item = document.createElement('section');
       item.className = 'note-item';
       list.appendChild(item);
+
+      const index = document.createElement('div');
+      index.className = 'note-index';
+      index.textContent = `${i + 1} / ${total}`;
+      item.appendChild(index);
 
       const preview = document.createElement('div');
       preview.className = 'note-preview';
