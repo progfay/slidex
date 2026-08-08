@@ -1,11 +1,11 @@
 ---
 name: preview
-description: Preview the current slidex deck. Two modes — pick based on the situation. (1) Normal preview, when a local server is reachable (Claude Code's own sandbox, a desktop dev environment): start `python3 -m http.server 8000` at the repo root and open http://localhost:8000/. (2) Artifact preview, when a local server isn't viable — reviewing from a phone or any device that can't reach localhost, or the user explicitly asks for a shareable/Artifact preview: bundle the deck via .claude/skills/preview/build-preview.py and publish it as a Claude Artifact. Use whenever the user asks to preview, check, or review the deck/slides, or after a batch of slide edits when a visual check would help confirm nothing broke.
+description: Preview the current slidex deck. Three modes — pick based on the situation. (1) Normal preview, when a local server is reachable (Claude Code's own sandbox, a desktop dev environment): start `python3 -m http.server 8000` at the repo root and open http://localhost:8000/. (2) Artifact preview, when a local server isn't viable — reviewing from a phone or any device that can't reach localhost, or the user explicitly asks for a shareable/Artifact preview: bundle the deck via .claude/skills/preview/build-preview.py and publish it as a Claude Artifact. (3) Self-check, when Claude itself (not the user) needs to visually confirm a slide rendered correctly before reporting work as done: screenshot it headlessly via .claude/skills/preview/self-check.mjs and Read the resulting PNG. Use whenever the user asks to preview, check, or review the deck/slides, or after a batch of slide edits when a visual check would help confirm nothing broke.
 ---
 
 # デッキのプレビュー
 
-プレビューには2つの経路がある。状況に応じて使い分ける。
+プレビューには3つの経路がある。状況に応じて使い分ける。
 
 ## 通常のプレビュー: ローカルサーバー
 
@@ -35,6 +35,47 @@ PDF が欲しいときはビューアで ⌘P / Ctrl+P(1スライド = 1ペー�
    - description: 「現在のデッキ(N枚)を1ファイルにまとめたプレビュー」程度で簡潔に
 3. デッキを更新した後にまた見たいと言われたら、同じ手順を再実行し、
    **同じファイルパスで再publish**して同じURLを使い回す(新規URLを乱発しない)
+
+Artifact プレビューのサイドバーは2カラム。左は現在のスライドの発表者ノート
+(`<aside class="notes">`)を読み取り専用で表示するだけの領域で、「+コメント」
+から指摘を1件追加できる。右は「指摘」一覧で、スライドをタップして付けた通常の
+指摘・「+全体へコメント」・ノート欄の「+コメント」がすべて同じ一覧にまとまり、
+「コピー」で一括してテキスト化できる(ノートへの指摘は `ファイル名 — 発表者
+ノート` という見出しで出る)。ユーザーからこのコピーを渡されたら、指摘は該当
+`slides/*.html` の該当箇所を、発表者ノートへの指摘は `<aside class="notes">`
+の内容を直す。
+
+## Claude自身が見る: セルフチェック
+
+上の2つはどちらも**人間が見るための**プレビュー。ここは逆に、Claude が
+「リッチ化した装飾が実際に崩れていないか」「レイアウトが意図通りか」を
+作業完了と報告する前に**自分の目で**確認するための経路。テキストの読み合わせ
+(HTMLソースを読む)だけでは検出できない、見た目の崩れの確認に使う。
+
+`.claude/skills/preview/self-check.mjs` が、動いている通常プレビュー
+(モード1、`http://localhost:8000/`)を Playwright でヘッドレス起動して
+1280x720(キャンバス実寸、スケーリングなし)でスクリーンショットする。
+
+1. モード1のローカルサーバーを起動済みであることを確認する(未起動なら
+   `python3 -m http.server 8000` をバックグラウンドで)
+2. セッションの scratchpad で(**リポジトリには入れない**。engine/ の
+   依存ゼロ方針を維持するため、Playwright は scratchpad 限定の使い捨て
+   依存として都度入れる):
+   ```sh
+   npm init -y >/dev/null && npm i playwright@1.60.0
+   ```
+   バージョンはこのマシンの `~/Library/Caches/ms-playwright` にキャッシュ済みの
+   Chromium リビジョンに合わせてピン留めしてあり([[playwright-cached-chromium]]
+   参照)、これを使えばブラウザの再ダウンロードなしに即動く。キャッシュの中身が
+   変わっていたら memory の対応表の調べ方に従って新しいバージョンを調べ直す。
+3. `self-check.mjs` を scratchpad にコピーし(node のモジュール解決はスクリプト
+   自身の場所基準で `node_modules` を探すため、`npm i` した場所と同じ階層に
+   置く必要がある)、見たいスライド番号(`manifest.json` の並び順、1始まり)を
+   指定して実行する:
+   ```sh
+   node self-check.mjs http://localhost:8000/ <出力先ディレクトリ> 3 4 5
+   ```
+4. 出力された `slide-03.png` などを Read ツールで読み、見た目を確認する
 
 ## 注意
 
