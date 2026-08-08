@@ -178,8 +178,9 @@ body {
   background: var(--shell-bg); border: 1px solid var(--shell-line); border-radius: 6px;
   padding: 6px 8px;
 }
-#composer textarea:focus-visible, #copy-box textarea:focus-visible,
-#bar button:focus-visible, .pin:focus-visible, #sidebar-actions button:focus-visible {
+#composer textarea:focus-visible, .copy-box textarea:focus-visible,
+#bar button:focus-visible, .pin:focus-visible, #sidebar-actions button:focus-visible,
+#notes-comment-btn:focus-visible {
   outline: 2px solid var(--shell-accent); outline-offset: 1px;
 }
 #composer .actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
@@ -213,16 +214,15 @@ body {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ---- notes sidebar (always visible, right side) ---- */
+/* ---- sidebar (指摘 list, right side) ---- */
 #sidebar {
   flex: none; width: min(340px, 38vw); display: flex; flex-direction: column;
   min-height: 0; background: var(--shell-surface); border-left: 1px solid var(--shell-line);
 }
 #sidebar-header {
-  flex: none; display: flex; flex-direction: column; gap: 8px;
-  padding: 12px 14px; border-bottom: 1px solid var(--shell-line);
+  flex: none; padding: 10px 14px; border-bottom: 1px solid var(--shell-line);
 }
-#sidebar-header h2 { font-size: 14px; margin: 0; font-weight: 600; }
+#sidebar-header h2 { font-size: 14px; margin: 0 0 8px; font-weight: 600; }
 #sidebar-actions { display: flex; gap: 8px; }
 #sidebar-actions button {
   flex: 1; font: inherit; font-size: 13px; border-radius: 6px; padding: 6px 10px; border: 1px solid var(--shell-line);
@@ -232,19 +232,20 @@ body {
   background: var(--shell-accent); border-color: var(--shell-accent); color: #06262E; font-weight: 600;
   font-size: 14px; padding: 10px 12px;
 }
-#copy-box { display: none; padding: 10px 14px; border-bottom: 1px solid var(--shell-line); }
-#copy-box.open { display: block; }
-#copy-box textarea {
+.copy-box { display: none; padding: 10px 14px; }
+.copy-box.open { display: block; }
+.copy-box textarea {
   width: 100%; box-sizing: border-box; min-height: 130px;
   font: 12px/1.6 ui-monospace, 'SF Mono', Menlo, monospace;
   color: var(--shell-ink); background: var(--shell-bg); border: 1px solid var(--shell-line);
   border-radius: 6px; padding: 8px;
 }
-#copy-box .hint { font-size: 12px; color: var(--shell-muted); margin-top: 6px; }
+.copy-box .hint { font-size: 12px; color: var(--shell-muted); margin-top: 6px; }
 #note-list { flex: 1; overflow-y: auto; padding: 10px 14px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
 #empty-note { padding: 16px 4px; text-align: center; color: var(--shell-muted); font-size: 13px; }
 .note-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; background: var(--shell-bg); border: 1px solid var(--shell-line); border-radius: 8px; }
-.note-item.is-global { border-color: var(--shell-accent); cursor: pointer; }
+/* no pin on the canvas (デッキ全体 comments, notes comments) → the list is the only route back to editing */
+.note-item.is-linked { border-color: var(--shell-accent); cursor: pointer; }
 .note-item .badge {
   flex: none; width: 22px; height: 22px; border-radius: 50%;
   background: var(--shell-accent); color: #06262E; font: 700 11px/22px var(--shell-font);
@@ -255,11 +256,43 @@ body {
 .note-item .text { font-size: 14px; margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
 .note-item .remove { flex: none; background: transparent; border: none; color: var(--shell-muted); font-size: 18px; line-height: 1; padding: 2px 4px; cursor: pointer; }
 
-/* narrow viewports (phones): stack the sidebar below the stage instead of
-   squeezing it to a sliver on the right */
+/* ---- notes bar: a full-width horizontal strip pinned to the bottom of the
+   screen (below #main, so it spans under the stage *and* the sidebar) that
+   shows the current slide's speaker notes. A comment left here is just
+   another 指摘 entry (target: 'notes'), so it shows up in the same list and
+   gets copied together with the rest — see #notes-comment-btn's handler. */
+#notes-bar {
+  flex: none; display: flex; align-items: stretch; gap: 14px; box-sizing: border-box;
+  height: 22vh; max-height: 200px; min-height: 104px;
+  background: var(--shell-surface); border-top: 1px solid var(--shell-line);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+#notes-header {
+  flex: none; width: 150px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+}
+#notes-slide-label {
+  font-size: 12px; color: var(--shell-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#notes-comment-btn {
+  align-self: flex-start; font: inherit; font-size: 12px; border-radius: 6px; padding: 5px 8px;
+  border: 1px solid var(--shell-line); background: transparent; color: var(--shell-ink);
+}
+#notes-display {
+  flex: 1; overflow-y: auto; padding-right: 4px;
+  font-size: 13px; line-height: 1.6; color: var(--shell-ink);
+  white-space: pre-wrap; word-break: break-word;
+}
+#notes-display:empty::before { content: 'ノートなし'; color: var(--shell-muted); }
+
+/* narrow viewports (phones): stack the sidebar below the stage, and stack
+   the notes bar's own header above its text (side-by-side would be too
+   cramped at that width) */
 @media (max-width: 700px) {
   #main { flex-direction: column; }
-  #sidebar { width: auto; height: 42%; border-left: none; border-top: 1px solid var(--shell-line); }
+  #sidebar { width: auto; height: 34%; border-left: none; border-top: 1px solid var(--shell-line); }
+  #notes-bar { flex-direction: column; height: auto; max-height: 30vh; }
+  #notes-header { width: auto; flex-direction: row; align-items: center; justify-content: space-between; }
 }
 """
 
@@ -284,6 +317,14 @@ runtime_js = """
     return t.getAttribute('data-file');
   });
 
+  // 各スライドの元の発表者ノート(<aside class="notes">)をプレーンテキストで
+  // 控えておく(base.css で非表示にされているだけで shadow 内には残っている)
+  var originalNotes = {};
+  hosts.forEach(function (h, i) {
+    var el = h.shadowRoot.querySelector('.slide aside.notes');
+    originalNotes[files[i]] = el ? el.textContent.trim() : '';
+  });
+
   // Keep the current slide number in the URL hash (not a query string —
   // avoids fighting with any params the artifact host itself manages) so a
   // reload or a shared link lands back on the same slide.
@@ -303,6 +344,7 @@ runtime_js = """
       (files[current] || '') + '  ·  ' + (current + 1) + ' / ' + hosts.length;
     layoutAnnotationLayer();
     renderPins();
+    renderNotesDisplay();
     writeSlideToURL();
   }
   function goTo(n) { current = Math.max(0, Math.min(hosts.length - 1, n)); closeComposer(); render(); }
@@ -333,7 +375,7 @@ runtime_js = """
    * meaningful regardless of how much the canvas is scaled down to
    * fit the viewport (phone vs desktop).
    * ------------------------------------------------------------ */
-  var notes = []; // { id, slideIndex, file, x, y, tag, text, note }
+  var notes = []; // { id, slideIndex, file, x, y, tag, text, target, note } (target: null | 'notes')
   var nextId = 1;
   var editingId = null;
   var pending = null; // { slideIndex, x, y, tag, text } for a not-yet-saved pin
@@ -412,7 +454,8 @@ runtime_js = """
   function renderPins() {
     annotationLayer.querySelectorAll('.pin').forEach(function (p) { p.remove(); });
     notes.forEach(function (n, i) {
-      if (n.slideIndex !== current) return;
+      // notes comments (target: 'notes') have no canvas coordinate to pin
+      if (n.slideIndex !== current || n.target === 'notes') return;
       var pin = document.createElement('button');
       pin.type = 'button';
       pin.className = 'pin';
@@ -434,9 +477,9 @@ runtime_js = """
   }
 
   function noteLocation(n) {
-    return n.slideIndex === null
-      ? 'デッキ全体'
-      : n.file + ' — ' + (n.tag ? n.tag + (n.text ? ' “' + n.text + '”' : '') : 'x=' + n.x + ',y=' + n.y);
+    if (n.slideIndex === null) return 'デッキ全体';
+    if (n.target === 'notes') return n.file + ' — 発表者ノート';
+    return n.file + ' — ' + (n.tag ? n.tag + (n.text ? ' “' + n.text + '”' : '') : 'x=' + n.x + ',y=' + n.y);
   }
 
   function renderList() {
@@ -446,13 +489,14 @@ runtime_js = """
     if (notes.length === 0) {
       var empty = document.createElement('div');
       empty.id = 'empty-note';
-      empty.textContent = 'スライドをタップ、または「+全体」で指摘を追加できます';
+      empty.textContent = 'スライドをタップ、「+全体」、または発表者ノートの「+コメント」で指摘を追加できます';
       list.appendChild(empty);
       return;
     }
     notes.forEach(function (n, i) {
       var item = document.createElement('div');
-      item.className = 'note-item' + (n.slideIndex === null ? ' is-global' : '');
+      var linked = n.slideIndex === null || n.target === 'notes';
+      item.className = 'note-item' + (linked ? ' is-linked' : '');
       item.innerHTML =
         '<div class="badge">' + (i + 1) + '</div>' +
         '<div class="body"><div class="loc"></div><div class="text"></div></div>' +
@@ -463,9 +507,9 @@ runtime_js = """
         e.stopPropagation();
         removeNote(n.id);
       });
-      // Global (deck-wide) notes have no pin, so the list is their only
-      // route to being edited.
-      if (n.slideIndex === null) {
+      // Deck-wide and notes comments have no pin, so the list is their
+      // only route to being edited.
+      if (linked) {
         item.addEventListener('click', function () {
           var stageRect = stage.getBoundingClientRect();
           openComposerForEdit(n, { x: stageRect.width / 2, y: stageRect.height / 2 });
@@ -537,9 +581,11 @@ runtime_js = """
   function openComposerForEdit(note, anchor) {
     pending = null;
     editingId = note.id;
-    composerHit.textContent = note.slideIndex === null
-      ? 'デッキ全体へのコメント'
-      : (note.tag ? note.tag + (note.text ? ': “' + note.text + '”' : '') : ('x=' + note.x + ', y=' + note.y));
+    composerHit.textContent = note.target === 'notes'
+      ? '発表者ノートへのコメント'
+      : note.slideIndex === null
+        ? 'デッキ全体へのコメント'
+        : (note.tag ? note.tag + (note.text ? ': “' + note.text + '”' : '') : ('x=' + note.x + ', y=' + note.y));
     composerText.value = note.note;
     composerDelete.style.display = 'inline-block';
     composer._anchor = anchor;
@@ -576,7 +622,8 @@ runtime_js = """
       notes.push({
         id: nextId++, slideIndex: pending.slideIndex,
         file: pending.slideIndex === null ? null : files[pending.slideIndex],
-        x: pending.x, y: pending.y, tag: pending.tag, text: pending.text, note: text,
+        x: pending.x, y: pending.y, tag: pending.tag, text: pending.text,
+        target: pending.target || null, note: text,
       });
     }
     saveNotes();
@@ -592,6 +639,7 @@ runtime_js = """
   document.getElementById('copy-btn').addEventListener('click', function () {
     var lines = notes.map(function (n, i) {
       if (n.slideIndex === null) return (i + 1) + '. デッキ全体\\n   → ' + n.note;
+      if (n.target === 'notes') return (i + 1) + '. ' + n.file + ' — 発表者ノート\\n   → ' + n.note;
       var loc = n.tag ? n.tag + (n.text ? ' “' + n.text + '”' : '') : '';
       return (i + 1) + '. ' + n.file + ' — ' + loc + ' (x=' + n.x + ',y=' + n.y + ' / 1280x720)\\n   → ' + n.note;
     });
@@ -602,6 +650,32 @@ runtime_js = """
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(copyText.value).catch(function () {});
     }
+  });
+
+  /* ------------------------------------------------------------ *
+   * ノート表示: 発表者ノートは読み取り専用のまま表示するだけ(元テキストを
+   * 書き換える機能ではない)。それに対する指摘は「+コメント」から
+   * 通常の指摘と同じ notes[] 配列に target: 'notes' として積む。キャンバス
+   * 上のピンは持たないが、指摘一覧・コピーには他の指摘と一緒に出る。
+   * ------------------------------------------------------------ */
+  var notesDisplay = document.getElementById('notes-display');
+  var notesSlideLabel = document.getElementById('notes-slide-label');
+  function renderNotesDisplay() {
+    var file = files[current];
+    notesSlideLabel.textContent = file || '';
+    notesDisplay.textContent = originalNotes[file] || '';
+  }
+  document.getElementById('notes-comment-btn').addEventListener('click', function () {
+    pending = { slideIndex: current, x: null, y: null, tag: '', text: '', target: 'notes' };
+    editingId = null;
+    composerHit.textContent = '発表者ノートへのコメント';
+    composerText.value = '';
+    composerDelete.style.display = 'none';
+    var stageRect = stage.getBoundingClientRect();
+    composer._anchor = { x: stageRect.width / 2, y: stageRect.height / 2 };
+    composer.classList.add('open');
+    positionComposer();
+    composerText.focus();
   });
 
   render();
@@ -637,6 +711,13 @@ doc = f"""<!doctype html>
   </div>
 </div>
 </div>
+<div id="notes-bar">
+  <div id="notes-header">
+    <div id="notes-slide-label"></div>
+    <button id="notes-comment-btn" type="button">＋コメント</button>
+  </div>
+  <div id="notes-display"></div>
+</div>
 <div id="bar">
   <button id="prev" type="button" aria-label="前のスライド">&larr;</button>
   <span id="counter"></span>
@@ -645,13 +726,13 @@ doc = f"""<!doctype html>
 </div>
 <div id="sidebar">
   <div id="sidebar-header">
-    <h2>指摘一覧 <span id="note-count">0</span></h2>
+    <h2>指摘 <span id="note-count">0</span></h2>
     <div id="sidebar-actions">
       <button id="add-global" type="button">＋ 全体へコメント</button>
       <button id="copy-btn" type="button">コピー</button>
     </div>
   </div>
-  <div id="copy-box">
+  <div id="copy-box" class="copy-box">
     <textarea id="copy-text" readonly></textarea>
     <div class="hint">上のテキストは選択済みです。長押し(PCはCmd/Ctrl+C)でコピーできます。</div>
   </div>
