@@ -19,19 +19,19 @@
 @layer system {
   .slide {
     /* ---- 3. Color tokens (contract — names are load-bearing, keep them) ---- */
-    --color-bg: #10141F;
-    --color-ink: #E8EDF6;
-    --color-muted: #8C96AB;
-    --color-accent: #5CCFE6;
-    --color-code-bg: #171D2B;
-    --color-code-ink: #DDE4F0;
+    --color-bg: #FFFFFF;
+    --color-ink: #05061D;
+    --color-muted: #6B6985;
+    --color-accent: #1577D8;
+    --color-code-bg: #F4F4F8;
+    --color-code-ink: #05061D;
 
     /* additional tokens */
-    --color-surface: #171D2B;
-    --color-line: #2A3245;
-    --color-success: #7DD8A0;
-    --color-warning: #F0C674;
-    --color-danger: #F2708A;
+    --color-surface: #F4F4F8;
+    --color-line: #E1E0EA;
+    --color-success: #1A8F4D;
+    --color-warning: #C77700;
+    --color-danger: #EE0012;
 
     /* ---- 4. Typography tokens (contract) ---- */
     --font-display: 'Avenir Next', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
