@@ -13,6 +13,18 @@
     <div id="progress-track"><div id="progress"></div></div>
     <div id="page-counter"></div>
   </div>
+  <!-- 発表者ビュー(p キーで開くポップアップ側で表示)。スライド2枚は #stage の host をそのまま配置する -->
+  <div id="presenter" hidden>
+    <header id="presenter-bar">
+      <button id="presenter-timer" type="button" title="クリックでリセット">00:00</button>
+      <span id="presenter-clock"></span>
+      <span id="presenter-page"></span>
+      <span id="presenter-help">← → 送る / + − ノート文字サイズ / p 閉じる</span>
+    </header>
+    <div id="presenter-next-label">NEXT</div>
+    <div id="presenter-end" hidden>最後のスライド</div>
+    <div id="presenter-notes"></div>
+  </div>
   <script type="module" src="engine/engine.js"></script>
 </body>
 </html>

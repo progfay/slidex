@@ -191,3 +191,152 @@ html:active-view-transition-type(backward)::view-transition-new(current-slide) {
      (継承プロパティなので shadow 内のスライドにも効く) */
   :root { print-color-adjust: exact; }
 }
+
+/* --- 発表者ビュー(presentation mode) --- *
+ * p キーで開くポップアップ(?mode=presenter)がこのレイアウトになる
+ * (開いた側の opener は観客用として通常表示のまま)。
+ * バーの下、画面の上 6 割を 7:3 に分けて現在のスライドと次のスライド、
+ * 下 4 割を発表者ノートに使う。
+ * スライドは #stage の host をそのまま置き直し、幅だけ与えて
+ * base.css の cqw スケールで縮める(overview と同じ仕組み)。
+ */
+
+body.presenter {
+  --p-bar: 48px;
+  --p-gap: 20px;
+  --p-top: calc(var(--p-bar) + var(--p-gap));
+  /* 上 6 割のうちスライドに使える高さと幅 */
+  --p-h: calc(60dvb - var(--p-top) - var(--p-gap) / 2);
+  /* 現在のスライドと次のスライドの間の余白(しっかりめ) */
+  --p-split-gap: 64px;
+  /* 現在のスライドは幅の 7 割まで(高さが足りなければ縮める)。
+     次のスライドはその右の空きいっぱいに広げる(高さは上 6 割まで) */
+  --p-cur-w: min(calc((100dvi - var(--p-gap) * 2 - var(--p-split-gap)) * 0.7),
+                 calc(var(--p-h) * 16 / 9));
+  --p-next-x: calc(var(--p-gap) + var(--p-cur-w) + var(--p-split-gap));
+  --p-next-w: min(calc(100dvi - var(--p-next-x) - var(--p-gap)),
+                  calc(var(--p-h) * 16 / 9));
+}
+
+body.presenter #chrome { display: none; }
+
+body.presenter:not(.overview) .slide-host {
+  top: var(--p-top);
+  transform: none;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+body.presenter:not(.overview) .slide-host[data-active] {
+  left: var(--p-gap);
+  width: var(--p-cur-w);
+}
+
+body.presenter:not(.overview) .slide-host[data-next] {
+  display: block;
+  left: var(--p-next-x);
+  width: var(--p-next-w);
+  opacity: 0.8;
+}
+
+body.presenter:not(.overview) .slide-host[data-active] { view-transition-name: none; }
+
+#presenter {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  color: #E8EDF6;
+  font-family: system-ui, 'Hiragino Kaku Gothic ProN', sans-serif;
+  --presenter-notes-size: 24px;
+}
+
+#presenter[hidden] { display: none; }
+
+#presenter-bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--p-bar);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 var(--p-gap);
+  background: rgb(255 255 255 / 0.05);
+  font-variant-numeric: tabular-nums;
+}
+
+#presenter-timer {
+  pointer-events: auto;
+  font: 700 26px/1 ui-monospace, monospace;
+  color: #5CCFE6;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+#presenter-clock,
+#presenter-page { font: 18px/1 ui-monospace, monospace; }
+
+#presenter-help {
+  margin-left: auto;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.5);
+}
+
+/* 次のスライドの左上に重ねるラベル */
+#presenter-next-label {
+  position: absolute;
+  left: var(--p-next-x);
+  top: var(--p-top);
+  z-index: 1;
+  padding: 4px 8px;
+  border-radius: 4px 0 4px 0;
+  background: rgb(0 0 0 / 0.6);
+  font: 600 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  color: rgb(255 255 255 / 0.75);
+}
+
+#presenter-end {
+  position: absolute;
+  left: var(--p-next-x);
+  top: var(--p-top);
+  width: var(--p-next-w);
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: rgb(255 255 255 / 0.5);
+  border: 1px dashed rgb(255 255 255 / 0.2);
+  border-radius: 4px;
+}
+
+#presenter-end[hidden] { display: none; }
+
+/* 下 4 割: 発表者ノート */
+#presenter-notes {
+  position: absolute;
+  left: var(--p-gap);
+  right: var(--p-gap);
+  top: calc(60dvb + var(--p-gap) / 2);
+  bottom: var(--p-gap);
+  overflow-y: auto;
+  pointer-events: auto;
+  padding-top: var(--p-gap);
+  border-top: 1px solid rgb(255 255 255 / 0.12);
+  font-size: var(--presenter-notes-size);
+  line-height: 1.6;
+}
+
+#presenter-notes.plain { white-space: pre-line; }
+#presenter-notes p { margin: 0 0 0.8em; }
+#presenter-notes .presenter-empty { color: rgb(255 255 255 / 0.4); font-style: italic; }
+
+/* overview 中・印刷時は発表者ビューを畳む */
+body.presenter.overview #presenter { display: none; }
+
+@media print {
+  #presenter { display: none !important; }
+}
